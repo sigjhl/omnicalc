@@ -151,7 +151,7 @@ class OrchestratorAgent:
 
             # Process tool calls
             for tool_call in result.tool_calls:
-                tool_result = await self._execute_tool(tool_call, session)
+                tool_result = await self.tools.execute_tool(tool_call.name, tool_call.arguments)
 
                 # Add assistant message with tool call
                 session.messages.append(
