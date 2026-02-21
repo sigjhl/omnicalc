@@ -29,26 +29,50 @@ class CalculatorDef(BaseModel):
 def _clamp(val: float, min_val: float, max_val: float) -> float:
     return max(min_val, min(val, max_val))
 
-def run_meld_na(vars: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_var(raw: Any, default_unit: str) -> tuple[float, str]:
+    """Parse a variable that might be a dict or a raw value."""
+    if isinstance(raw, dict):
+        return float(raw.get("value", 0)), raw.get("unit", default_unit)
+    return float(raw) if raw is not None else 0.0, default_unit
+
+def run_meld_na(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Execute the MELD-Na calculation."""
     try:
-        bili = float(vars.get("serum_bilirubin", vars.get("bilirubin", 0)))
-        inr = float(vars.get("inr", 0))
-        cr = float(vars.get("serum_creatinine", vars.get("creatinine", vars.get("cr", 0))))
-        na = float(vars.get("serum_sodium", vars.get("sodium", vars.get("na", 0))))
+        raw_bili = vars_dict.get("serum_bilirubin", vars_dict.get("bilirubin"))
+        raw_inr = vars_dict.get("inr")
+        raw_cr = vars_dict.get("serum_creatinine", vars_dict.get("creatinine", vars_dict.get("cr")))
+        raw_na = vars_dict.get("serum_sodium", vars_dict.get("sodium", vars_dict.get("na")))
         
-        if not (bili and inr and cr and na):
+        if raw_bili is None or raw_inr is None or raw_cr is None or raw_na is None:
             return {"success": False, "errors": ["Missing required variables for MELD-Na."]}
+            
+        bili_val, bili_unit = _parse_var(raw_bili, "mg/dL")
+        inr_val, inr_unit = _parse_var(raw_inr, "")
+        cr_val, cr_unit = _parse_var(raw_cr, "mg/dL")
+        na_val, na_unit = _parse_var(raw_na, "mEq/L")
+
+        # Conversions
+        if bili_unit.lower() == "umol/l":
+            bili_val = bili_val / 17.1
+            bili_unit = "mg/dL (converted from umol/L)"
+            
+        if cr_unit.lower() == "umol/l":
+            cr_val = cr_val / 88.4
+            cr_unit = "mg/dL (converted from umol/L)"
+            
+        if na_unit.lower() == "mmol/l":
+            # 1 mmol/L = 1 mEq/L for Sodium
+            na_unit = "mEq/L"
 
         # MELD rules:
         # Bili, INR, Cr < 1.0 are set to 1.0
         # Cr > 4.0 is set to 4.0
-        bili = max(1.0, bili)
-        inr = max(1.0, inr)
-        cr = _clamp(cr, 1.0, 4.0)
+        bili = max(1.0, bili_val)
+        inr = max(1.0, inr_val)
+        cr = _clamp(cr_val, 1.0, 4.0)
 
         # Na bounded between 125 and 137
-        na = _clamp(na, 125.0, 137.0)
+        na = _clamp(na_val, 125.0, 137.0)
 
         # Standard MELD
         meld_i = 0.957 * math.log(cr) + 0.378 * math.log(bili) + 1.120 * math.log(inr) + 0.643
@@ -65,6 +89,13 @@ def run_meld_na(vars: Dict[str, Any]) -> Dict[str, Any]:
 
         meld_na = min(40, meld_na)
 
+        inputs_used = {
+            "serum_bilirubin": f"{bili_val:.2f} {bili_unit}".strip(),
+            "inr": f"{inr_val:.2f}".strip(),
+            "serum_creatinine": f"{cr_val:.2f} {cr_unit}".strip(),
+            "serum_sodium": f"{na_val:.1f} {na_unit}".strip()
+        }
+
         return {
             "success": True,
             "outputs": {
@@ -72,7 +103,7 @@ def run_meld_na(vars: Dict[str, Any]) -> Dict[str, Any]:
                 "meld_na_score": meld_na
             },
             "audit_trace": {
-                "inputs_used": {"serum_bilirubin": bili, "inr": inr, "serum_creatinine": cr, "serum_sodium": na},
+                "inputs_used": inputs_used,
                 "log": ["Computed MELD-Na based on standard OPTN formula."]
             },
             "errors": [],

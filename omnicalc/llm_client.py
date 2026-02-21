@@ -30,7 +30,20 @@ class Message:
         if self.content is not None:
             d["content"] = self.content
         if self.tool_calls is not None:
-            d["tool_calls"] = self.tool_calls
+            formatted_calls = []
+            for tc in self.tool_calls:
+                if isinstance(tc, dict):
+                    formatted_calls.append(tc)
+                else:
+                    formatted_calls.append({
+                        "id": getattr(tc, "id", ""),
+                        "type": getattr(tc, "type", "function"),
+                        "function": {
+                            "name": getattr(tc, "name", ""),
+                            "arguments": getattr(tc, "raw_arguments", "") or json.dumps(getattr(tc, "arguments", {}))
+                        }
+                    })
+            d["tool_calls"] = formatted_calls
         if self.tool_call_id is not None:
             d["tool_call_id"] = self.tool_call_id
         if self.name is not None:

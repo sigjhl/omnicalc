@@ -57,7 +57,23 @@ def create_transcriber(model, processor, backend_info):
                 logits = model(input_features).logits.cpu()
             predicted_ids = torch.argmax(logits, dim=-1).numpy()
 
-        transcription = processor.batch_decode(predicted_ids)[0]
+        # Handle CTC token collapse manually for robustness across transformers versions
+        # Get pad token ID (blank token)
+        pad_id = processor.tokenizer.pad_token_id
+        if pad_id is None:
+            pad_id = getattr(processor.tokenizer, "blank_token_id", 0)
+
+        seq = predicted_ids[0] if len(predicted_ids.shape) > 1 else predicted_ids
+        collapsed = []
+        prev = -1
+        for tk in seq:
+            # For numpy/torch compat, ensure int
+            val = int(tk)
+            if val != prev and val != pad_id:
+                collapsed.append(val)
+            prev = val
+            
+        transcription = processor.tokenizer.decode(collapsed)
         clean_text = transcription.replace("</s>", "").strip()
         return clean_text
 

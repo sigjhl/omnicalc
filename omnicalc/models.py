@@ -12,18 +12,7 @@ class UserLocale(BaseModel):
     """User's default unit preferences."""
 
     locale: str = "US"
-    unit_profile: Dict[str, str] = Field(default_factory=lambda: {
-        "creatinine": "mg/dL",
-        "bilirubin": "mg/dL",
-        "sodium": "mmol/L",  # mmol/L = mEq/L for Na+, but CalcSpec uses mmol/L as canonical
-        "potassium": "mmol/L",  # mmol/L = mEq/L for K+
-        "glucose": "mg/dL",
-        "hemoglobin": "g/dL",
-        "albumin": "g/dL",
-        "ast": "U/L",
-        "alt": "U/L",
-        "platelet_count": "x10^9/L",
-    })
+    description: str = "U.S. Conventional Units"
 
 
 class ExtractedVariable(BaseModel):

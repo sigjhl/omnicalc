@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-ORCHESTRATOR_SYSTEM_PROMPT = """You are AgentiCalc, a clinical calculator assistant.
+ORCHESTRATOR_SYSTEM_PROMPT = """You are OmniCalc, a clinical calculator assistant.
 
 ## Available Calculators
 {calculator_list}
@@ -13,18 +13,20 @@ ORCHESTRATOR_SYSTEM_PROMPT = """You are AgentiCalc, a clinical calculator assist
 1. Identify which calculator to use from the clinical data
 2. Call `calc_info` to get the exact input field names and units
 3. Call `execute_calc` with extracted variables using the exact field IDs from the schema
-4. After successful calculation, respond with just "Done."
+4. After successful calculation, STOP calling tools. Respond with just "Done."
 
 ## Rules
-- Use exact field IDs from the schema (e.g., "serum_bilirubin" not "bilirubin")
-- When units are not specified, use the canonical_unit from the schema
-- If required variables are missing, ask for the specific missing values
-- If calculation fails, state the error briefly
-- Never perform arithmetic yourself - always use `execute_calc`
+- If the user explicitly provides a unit, use it.
+- If no unit is provided, assume the User's Locale Default below is in effect.
+- **CRITICAL**: If the User's Locale Default differs from the calculator's `canonical_unit` (or if you are unsure), you MUST pass the unit along with the value as `{{"value": number, "unit": "string"}}`.
+- If required variables are missing, ask for the specific missing values.
+- If calculation fails, state the error briefly.
+- Never perform arithmetic yourself - always use `execute_calc`.
+- NEVER call `execute_calc` again if you already have a successful result.
 - Be concise. No interpretation or explanation unless asked.
 
 ## Locale Defaults
-{locale_defaults}
+- {locale_description}
 """
 
 
@@ -57,7 +59,7 @@ Please ask the clinician for these specific values in a natural, concise way."""
 
 def build_system_prompt(
     calculators: List[Dict[str, str]],
-    locale_defaults: Dict[str, str],
+    locale_description: str,
 ) -> str:
     """Build the system prompt with available calculators and locale settings."""
 
@@ -71,13 +73,9 @@ def build_system_prompt(
 
     calculator_list = "\n".join(calc_lines) if calc_lines else "- No calculators loaded"
 
-    # Format locale defaults
-    locale_lines = [f"- {k}: {v}" for k, v in locale_defaults.items()]
-    locale_str = "\n".join(locale_lines) if locale_lines else "- Using standard units"
-
     return ORCHESTRATOR_SYSTEM_PROMPT.format(
         calculator_list=calculator_list,
-        locale_defaults=locale_str,
+        locale_description=locale_description,
     )
 
 

@@ -10,6 +10,7 @@ Simple multi-turn tool calling following the LM Studio pattern:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -22,6 +23,7 @@ from .models import (
     ExecuteCalcResult,
     ExtractedVariable,
     InputAttachment,
+    OrchestratorRequest,
     OrchestratorResponse,
     StreamEvent,
     UserLocale,
@@ -87,16 +89,7 @@ class OrchestratorAgent:
         if session_id in self._sessions:
             del self._sessions[session_id]
 
-    async def process(
-        self,
-        user_input: str,
-        session_id: Optional[str] = None,
-        locale: Optional[UserLocale] = None,
-        calculator_hint: Optional[str] = None,
-        model: Optional[str] = None,
-        attachments: Optional[List[InputAttachment]] = None,
-        allowed_calculators: Optional[List[str]] = None,
-    ) -> OrchestratorResponse:
+    async def process(self, request: OrchestratorRequest) -> OrchestratorResponse:
         """
         Process user input through the orchestrator.
 
@@ -105,19 +98,19 @@ class OrchestratorAgent:
         2. If tool_calls, execute them and add results to messages
         3. Repeat until no more tool calls or max turns reached
         """
-        if model:
-            logger.info("Using model override: %s", model)
-            self.llm.model = model
+        if request.model:
+            logger.info("Using model override: %s", request.model)
+            self.llm.model = request.model
 
-        session = self.get_or_create_session(session_id, locale)
+        session = self.get_or_create_session(request.session_id, request.locale)
 
         # Build system prompt with available calculators
         calculators = await self.tools.list_calculators()
-        if allowed_calculators:
-            calculators = [c for c in calculators if c.get("id") in allowed_calculators]
+        if request.allowed_calculators:
+            calculators = [c for c in calculators if c.get("id") in request.allowed_calculators]
         system_prompt = build_system_prompt(
             calculators=calculators,
-            locale_defaults=session.locale.unit_profile,
+            locale_description=session.locale.description,
         )
 
         # Initialize messages if new session
@@ -125,7 +118,7 @@ class OrchestratorAgent:
             session.messages.append(Message(role="system", content=system_prompt))
 
         # Add user message
-        user_content = self._build_user_content(user_input, calculator_hint, attachments)
+        user_content = self._build_user_content(request.input, request.calculator_hint, request.attachments)
         session.messages.append(Message(role="user", content=user_content))
 
         last_exec_result: Optional[ExecuteCalcResult] = None
@@ -200,60 +193,124 @@ class OrchestratorAgent:
             errors=["Maximum conversation turns reached"],
         )
 
-    async def process_stream(
-        self,
-        user_input: str,
-        session_id: Optional[str] = None,
-        locale: Optional[UserLocale] = None,
-        calculator_hint: Optional[str] = None,
-        model: Optional[str] = None,
-        attachments: Optional[List[InputAttachment]] = None,
-        allowed_calculators: Optional[List[str]] = None,
-    ) -> AsyncGenerator[StreamEvent, None]:
+    async def process_stream(self, request: OrchestratorRequest) -> AsyncGenerator[StreamEvent, None]:
         """Process user input with streaming events for UI updates."""
-        if model:
-            logger.info("Using model override (stream): %s", model)
-            self.llm.model = model
+        if request.model:
+            logger.info("Using model override (stream): %s", request.model)
+            self.llm.model = request.model
 
-        session = self.get_or_create_session(session_id, locale)
+        session = self.get_or_create_session(request.session_id, request.locale)
 
         # Build system prompt
         calculators = await self.tools.list_calculators()
-        if allowed_calculators:
-            calculators = [c for c in calculators if c.get("id") in allowed_calculators]
+        if request.allowed_calculators:
+            calculators = [c for c in calculators if c.get("id") in request.allowed_calculators]
         system_prompt = build_system_prompt(
             calculators=calculators,
-            locale_defaults=session.locale.unit_profile,
+            locale_description=session.locale.description,
         )
 
         if not session.messages:
             session.messages.append(Message(role="system", content=system_prompt))
 
-        user_content = self._build_user_content(user_input, calculator_hint, attachments)
+        user_content = self._build_user_content(request.input, request.calculator_hint, request.attachments)
         session.messages.append(Message(role="user", content=user_content))
 
         for turn in range(self.max_turns):
-            result = await self.llm.chat_completion(
+            full_content = ""
+            tool_calls_dict = {}
+            emitted_names = set()
+
+            async for chunk in self.llm.chat_completion_stream(
                 messages=session.messages,
                 tools=TOOL_DEFINITIONS,
-            )
+            ):
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+                
+                delta = choices[0].get("delta", {})
+                
+                if "content" in delta and delta["content"]:
+                    full_content += delta["content"]
+                
+                if "tool_calls" in delta:
+                    for tc in delta["tool_calls"]:
+                        idx = tc.get("index", 0)
+                        if idx not in tool_calls_dict:
+                            tool_calls_dict[idx] = {
+                                "id": tc.get("id", f"call_{idx}"),
+                                "name": "",
+                                "arguments": ""
+                            }
+                        
+                        func = tc.get("function", {})
+                        if "name" in func and func["name"]:
+                            tool_calls_dict[idx]["name"] += func["name"]
+                            
+                            # Emit calculator selected event IMMEDIATELY when the name is known
+                            name = tool_calls_dict[idx]["name"]
+                            if name == "calc_info" and idx not in emitted_names:
+                                # We don't have the calc_id yet, but we know it's loading a calculator
+                                yield StreamEvent(
+                                    type=EventType.CALCULATOR_SELECTED,
+                                    data={"calc_id": "calculator details"},
+                                )
+                                await asyncio.sleep(0.01)
+                                emitted_names.add(idx)
 
-            if not result.tool_calls:
-                if result.content:
-                    session.messages.append(Message(role="assistant", content=result.content))
+                        if "arguments" in func and func["arguments"]:
+                            tool_calls_dict[idx]["arguments"] += func["arguments"]
+
+            # Reconstruct the tool calls list
+            extracted_tool_calls = []
+            for idx, tc_data in sorted(tool_calls_dict.items()):
+                try:
+                    args = json.loads(tc_data["arguments"])
+                except Exception:
+                    args = {}
+                
+                extracted_tool_calls.append(
+                    ToolCall(
+                        id=tc_data["id"],
+                        name=tc_data["name"],
+                        arguments=args,
+                        raw_arguments=tc_data["arguments"]
+                    )
+                )
+
+            if not extracted_tool_calls:
+                # If no tool calls from the stream, maybe it's in the text (fallback)
+                if full_content:
+                    extracted_tool_calls = self.llm._parse_tool_calls_from_content(full_content)
+
+            if not extracted_tool_calls:
+                if full_content:
+                    session.messages.append(Message(role="assistant", content=full_content))
                     yield StreamEvent(
                         type=EventType.ASSISTANT_MESSAGE,
-                        data={"content": result.content},
+                        data={"content": full_content},
                     )
                 return
 
-            for tool_call in result.tool_calls:
-                # Emit event for tool call
+            # Add the assistant message with tool calls to session history
+            session.messages.append(
+                Message(
+                    role="assistant",
+                    content=full_content if full_content else None,
+                    tool_calls=extracted_tool_calls,
+                )
+            )
+
+            # Keep compatibility with existing tool execution loop
+            for tool_call in extracted_tool_calls:
+                # Emit events that require full arguments (calc_id, etc)
                 if tool_call.name == "calc_info":
                     yield StreamEvent(
                         type=EventType.CALCULATOR_SELECTED,
                         data={"calc_id": tool_call.arguments.get("calc_id")},
                     )
+                    await asyncio.sleep(0.01)
                 elif tool_call.name == "execute_calc":
                     yield StreamEvent(
                         type=EventType.EXTRACTING_VARIABLES,
@@ -262,24 +319,13 @@ class OrchestratorAgent:
                             "variables": tool_call.arguments.get("variables", {}),
                         },
                     )
+                    # Force flush the extracting variables to the client
+                    await asyncio.sleep(0.01)
 
                 # Execute tool
                 tool_result = await self._execute_tool(tool_call, session)
 
-                # Add to messages
-                session.messages.append(
-                    Message(
-                        role="assistant",
-                        tool_calls=[{
-                            "id": tool_call.id,
-                            "type": "function",
-                            "function": {
-                                "name": tool_call.name,
-                                "arguments": tool_call.raw_arguments,
-                            },
-                        }],
-                    )
-                )
+                # Add tool result message to history
                 session.messages.append(
                     Message(
                         role="tool",

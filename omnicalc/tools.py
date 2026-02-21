@@ -291,7 +291,7 @@ def format_calc_info_for_extraction(calc_info: CalcInfoResult) -> str:
         constraints = inp.get("constraints", {})
 
         req_marker = "*" if required else ""
-        unit_str = f" ({unit})" if unit else ""
+        unit_str = f" (default_unit: {unit})" if unit else ""
 
         line = f"  - {inp_id}{req_marker}: {label}{unit_str} [{inp_type}]"
 

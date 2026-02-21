@@ -19,6 +19,8 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 
 from .models import EventType, OrchestratorRequest, OrchestratorResponse, StreamEvent, UserLocale
@@ -81,6 +83,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files API
+STATIC_DIR = HERE.parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class HealthResponse(BaseModel):
@@ -162,7 +169,7 @@ def _ensure_asr_loaded():
     if _asr_loaded:
         return
 
-    from agenticalc.asr import load_asr_model, create_transcriber  # reuse helpers
+    from omnicalc.asr import load_asr_model, create_transcriber  # reuse helpers
     from transformers import AutoProcessor
 
     backend = os.environ.get("MEDASR_BACKEND", "mlx")
@@ -170,7 +177,14 @@ def _ensure_asr_loaded():
     model_path_to_use = os.environ.get("MEDASR_MODEL_PATH", "google/medasr")
 
     model, backend_info, model_path = load_asr_model(model_path_to_use, backend)
-    processor = AutoProcessor.from_pretrained(model_path)
+    print(f"DEBUG: Trying to load AutoProcessor from path: {model_path}")
+    try:
+        processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e
+    
     _asr_transcribe_fn = create_transcriber(model, processor, backend_info)
     _asr_backend_info = backend_info
     _asr_model_path = model_path
@@ -419,21 +433,18 @@ async def orchestrate_stream(request: OrchestratorRequest):
     async def event_generator():
         try:
             async for event in _orchestrator.process_stream(request):
-                yield f"data: {event.model_dump_json()}\n\n"
+                yield {"data": event.model_dump_json()}
         except Exception as e:
             logger.exception("Streaming error")
             error_event = StreamEvent(
                 type=EventType.ERROR,
                 data={"error": str(e)},
             )
-            yield f"data: {error_event.model_dump_json()}\n\n"
+            yield {"data": error_event.model_dump_json()}
         finally:
-            yield "data: [DONE]\n\n"
+            yield {"data": "[DONE]"}
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-    )
+    return EventSourceResponse(event_generator())
 
 
 class SessionRequest(BaseModel):
@@ -446,6 +457,46 @@ async def clear_session(request: SessionRequest):
     if _orchestrator:
         _orchestrator.clear_session(request.session_id)
     return {"status": "ok"}
+
+
+import tempfile
+
+@app.post("/capture/screen")
+async def capture_screen():
+    """Trigger native macOS screen capture (interactive region)."""
+    if sys.platform != "darwin":
+        raise HTTPException(status_code=400, detail="Native capture only supported on macOS.")
+        
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        tmp_path = tmp.name
+        
+    try:
+        # Run screencapture interactively (-i). This blocks until user finishes drawing.
+        process = await asyncio.create_subprocess_exec(
+            "screencapture", "-i", tmp_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await process.communicate()
+        
+        if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+             return {"status": "cancelled"}
+             
+        with open(tmp_path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("utf-8")
+            
+        return {
+            "status": "success",
+            "attachment": {
+                "kind": "image",
+                "mime_type": "image/png",
+                "data": b64,
+                "name": "Screenshot.png"
+            }
+        }
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 class TextInputRequest(BaseModel):
@@ -1063,6 +1114,10 @@ DEMO_HTML = """<!doctype html>
 @app.get("/", response_class=HTMLResponse)
 async def demo_page():
     """Serve a simple in-browser demo UI."""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
     return HTMLResponse(content=DEMO_HTML)
 
 
