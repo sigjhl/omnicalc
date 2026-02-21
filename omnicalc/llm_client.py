@@ -401,3 +401,55 @@ class LMStudioClient:
         except Exception as e:
             logger.warning(f"Failed to list models: {e}")
         return []
+
+    async def chat_v1_stream(
+        self,
+        user_input: Any,
+        system_prompt: Optional[str] = None,
+        previous_response_id: Optional[str] = None,
+        integrations: Optional[List[Dict[str, Any]]] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Make a streaming chat request using LM Studio's proprietary /api/v1/chat endpoint.
+        """
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "input": user_input,
+            "stream": True,
+        }
+        
+        if system_prompt:
+            payload["system_prompt"] = system_prompt
+            
+        if previous_response_id:
+            payload["previous_response_id"] = previous_response_id
+            
+        if integrations:
+            payload["integrations"] = integrations
+            
+        api_url = self.base_url.replace("/v1", "/api/v1/chat")
+        
+        async with self._client.stream(
+            "POST",
+            api_url,
+            json=payload,
+            timeout=120.0
+        ) as response:
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                import logging
+                logging.getLogger(__name__).error(f"LM Studio API Error: {response.text}")
+                raise e
+                
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    data_str = line[6:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    if not data_str:
+                        continue
+                    try:
+                        yield json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue

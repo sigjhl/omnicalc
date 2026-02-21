@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration from environment
 LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "http://localhost:1234/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "auto")
+MODEL_NAME = os.environ.get("MODEL_NAME", "openai/gpt-oss-20b")
 
 # Paths
 HERE = Path(__file__).resolve()
@@ -43,6 +43,30 @@ _asr_loaded: bool = False
 _asr_transcribe_fn = None
 _asr_backend_info = None
 _asr_model_path: Optional[str] = None
+
+from mcp.server.fastmcp import FastMCP
+mcp_server = FastMCP("OmniCalc")
+
+@mcp_server.tool()
+async def execute_calc(calc_id: str, variables: dict) -> str:
+    """Execute a calculation with extracted variables. Returns the calculated result or validation errors."""
+    if not _orchestrator:
+        return "Error: Orchestrator not initialized"
+    import json
+    res = await _orchestrator.tools.execute_calc(calc_id=calc_id, variables=variables)
+    
+    _orchestrator.last_mcp_calc_id = calc_id
+    _orchestrator.last_mcp_result = res
+    return json.dumps(res.model_dump())
+
+@mcp_server.tool()
+async def calc_info(calc_id: str) -> str:
+    """Get the input schema for a clinical calculator. Returns field names, types, units, and constraints needed for execute_calc."""
+    if not _orchestrator:
+        return "Error: Orchestrator not initialized"
+    import json
+    res = await _orchestrator.tools.calc_info(calc_id=calc_id)
+    return json.dumps(res.model_dump())
 
 
 @asynccontextmanager
@@ -75,6 +99,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.mount("/mcp", mcp_server.sse_app())
 
 app.add_middleware(
     CORSMiddleware,

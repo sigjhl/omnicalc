@@ -43,6 +43,7 @@ class Session:
     locale: UserLocale = field(default_factory=UserLocale)
     last_calculator_id: Optional[str] = None
     last_variables: Dict[str, Any] = field(default_factory=dict)
+    previous_response_id: Optional[str] = None
 
 
 class OrchestratorAgent:
@@ -52,16 +53,14 @@ class OrchestratorAgent:
     Uses standard multi-turn tool calling with LM Studio.
     """
 
-    def __init__(
-        self,
-        llm_client: LMStudioClient,
-        tool_handler: ToolHandler,
-        max_turns: int = 10,
-    ):
+    def __init__(self, llm_client: LMStudioClient, tool_handler: ToolHandler, max_turns: int = 10):
         self.llm = llm_client
         self.tools = tool_handler
         self.max_turns = max_turns
-        self._sessions: Dict[str, Session] = {}
+        self.sessions: Dict[str, Session] = {}
+        # Used to pass data from MCP endpoint to stream events
+        self.last_mcp_calc_id: Optional[str] = None
+        self.last_mcp_result: Optional[Any] = None
 
     def get_or_create_session(
         self,
@@ -69,20 +68,21 @@ class OrchestratorAgent:
         locale: Optional[UserLocale] = None,
     ) -> Session:
         """Get existing session or create a new one."""
-        if session_id and session_id in self._sessions:
-            session = self._sessions[session_id]
-            if locale:
+        if session_id and session_id in self.sessions:
+            session = self.sessions[session_id]
+            if locale and session.locale != locale:
                 session.locale = locale
             return session
 
-        new_id = session_id or str(uuid.uuid4())
-        session = Session(
-            session_id=new_id,
-            locale=locale or UserLocale(),
-        )
-        self._sessions[new_id] = session
+        new_session = Session(session_id=session_id or str(uuid.uuid4()), locale=locale or UserLocale())
+        if session_id:
+            self.sessions[session_id] = new_session
         self.tools.reset_session()  # Reset tool state for new session
-        return session
+        return new_session
+
+    def get_session(self, session_id: str) -> Optional[Session]:
+        """Get an existing session."""
+        return self.sessions.get(session_id)
 
     def clear_session(self, session_id: str):
         """Clear a session and its state."""
@@ -194,7 +194,7 @@ class OrchestratorAgent:
         )
 
     async def process_stream(self, request: OrchestratorRequest) -> AsyncGenerator[StreamEvent, None]:
-        """Process user input with streaming events for UI updates."""
+        """Process user input using LM Studio's native agent loop with FastMCP via /api/v1/chat."""
         if request.model:
             logger.info("Using model override (stream): %s", request.model)
             self.llm.model = request.model
@@ -210,154 +210,93 @@ class OrchestratorAgent:
             locale_description=session.locale.description,
         )
 
-        if not session.messages:
-            session.messages.append(Message(role="system", content=system_prompt))
-
         user_content = self._build_user_content(request.input, request.calculator_hint, request.attachments)
-        session.messages.append(Message(role="user", content=user_content))
+        
+        # We don't append to session.messages because LM Studio maintains history via previous_response_id
+        
+        integrations = [
+            {
+                "type": "ephemeral_mcp",
+                "server_label": "omnicalc_tools",
+                "server_url": "http://localhost:8002/mcp/sse",
+                "allowed_tools": ["calc_info", "execute_calc"]
+            }
+        ]
 
-        for turn in range(self.max_turns):
-            full_content = ""
-            tool_calls_dict = {}
-            emitted_names = set()
-
-            async for chunk in self.llm.chat_completion_stream(
-                messages=session.messages,
-                tools=TOOL_DEFINITIONS,
-            ):
-                choices = chunk.get("choices", [])
-                if not choices:
-                    continue
+        full_content = ""
+        tool_call_data = {}
+        
+        async for event in self.llm.chat_v1_stream(
+            user_input=user_content,
+            system_prompt=system_prompt,
+            previous_response_id=session.previous_response_id,
+            integrations=integrations,
+        ):
+            event_type = event.get("type")
+            
+            if event_type == "response_id":
+                session.previous_response_id = event.get("response_id")
                 
-                delta = choices[0].get("delta", {})
+            elif event_type == "message.delta":
+                delta_content = event.get("content", "")
                 
-                if "content" in delta and delta["content"]:
-                    full_content += delta["content"]
+                # Strip strict XML-style tags emitted by gpt-oss models
+                delta_content = delta_content.replace("<|channel|>final<|message|>", "")
+                delta_content = delta_content.replace("<|channel|>thought<|message|>", "")
                 
-                if "tool_calls" in delta:
-                    for tc in delta["tool_calls"]:
-                        idx = tc.get("index", 0)
-                        if idx not in tool_calls_dict:
-                            tool_calls_dict[idx] = {
-                                "id": tc.get("id", f"call_{idx}"),
-                                "name": "",
-                                "arguments": ""
-                            }
+                full_content += delta_content
+                if delta_content:
+                    yield StreamEvent(type=EventType.ASSISTANT_MESSAGE, data={"content": delta_content})
+                
+            elif event_type == "tool_call.name":
+                tool_name = event.get("tool_name", "")
+                if tool_name == "calc_info":
+                    yield StreamEvent(type=EventType.CALCULATOR_SELECTED, data={"calc_id": "calculator schema"})
+                    await asyncio.sleep(0.5)
+                    
+            elif event_type == "tool_call.arguments":
+                # LM Studio emits full arguments as a dict once parsed
+                tool_name = event.get("tool", "")
+                args = event.get("arguments", {})
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        args = {}
                         
-                        func = tc.get("function", {})
-                        if "name" in func and func["name"]:
-                            tool_calls_dict[idx]["name"] += func["name"]
-                            
-                            # Emit calculator selected event IMMEDIATELY when the name is known
-                            name = tool_calls_dict[idx]["name"]
-                            if name == "calc_info" and idx not in emitted_names:
-                                # We don't have the calc_id yet, but we know it's loading a calculator
-                                yield StreamEvent(
-                                    type=EventType.CALCULATOR_SELECTED,
-                                    data={"calc_id": "calculator details"},
-                                )
-                                await asyncio.sleep(0.01)
-                                emitted_names.add(idx)
-
-                        if "arguments" in func and func["arguments"]:
-                            tool_calls_dict[idx]["arguments"] += func["arguments"]
-
-            # Reconstruct the tool calls list
-            extracted_tool_calls = []
-            for idx, tc_data in sorted(tool_calls_dict.items()):
-                try:
-                    args = json.loads(tc_data["arguments"])
-                except Exception:
-                    args = {}
-                
-                extracted_tool_calls.append(
-                    ToolCall(
-                        id=tc_data["id"],
-                        name=tc_data["name"],
-                        arguments=args,
-                        raw_arguments=tc_data["arguments"]
-                    )
-                )
-
-            if not extracted_tool_calls:
-                # If no tool calls from the stream, maybe it's in the text (fallback)
-                if full_content:
-                    extracted_tool_calls = self.llm._parse_tool_calls_from_content(full_content)
-
-            if not extracted_tool_calls:
-                if full_content:
-                    session.messages.append(Message(role="assistant", content=full_content))
-                    yield StreamEvent(
-                        type=EventType.ASSISTANT_MESSAGE,
-                        data={"content": full_content},
-                    )
-                return
-
-            # Add the assistant message with tool calls to session history
-            session.messages.append(
-                Message(
-                    role="assistant",
-                    content=full_content if full_content else None,
-                    tool_calls=extracted_tool_calls,
-                )
-            )
-
-            # Keep compatibility with existing tool execution loop
-            for tool_call in extracted_tool_calls:
-                # Emit events that require full arguments (calc_id, etc)
-                if tool_call.name == "calc_info":
-                    yield StreamEvent(
-                        type=EventType.CALCULATOR_SELECTED,
-                        data={"calc_id": tool_call.arguments.get("calc_id")},
-                    )
-                    await asyncio.sleep(0.01)
-                elif tool_call.name == "execute_calc":
+                if tool_name == "execute_calc":
                     yield StreamEvent(
                         type=EventType.EXTRACTING_VARIABLES,
                         data={
-                            "calc_id": tool_call.arguments.get("calc_id"),
-                            "variables": tool_call.arguments.get("variables", {}),
-                        },
+                            "calc_id": args.get("calc_id"),
+                            "variables": args.get("variables", {}),
+                        }
                     )
-                    # Force flush the extracting variables to the client
-                    await asyncio.sleep(0.01)
-
-                # Execute tool
-                tool_result = await self._execute_tool(tool_call, session)
-
-                # Add tool result message to history
-                session.messages.append(
-                    Message(
-                        role="tool",
-                        content=json.dumps(tool_result),
-                        tool_call_id=tool_call.id,
-                    )
-                )
-
-                # Emit result events for execute_calc
-                if tool_call.name == "execute_calc":
-                    exec_result = ExecuteCalcResult(**tool_result)
-                    session.last_calculator_id = tool_call.arguments.get("calc_id")
-                    session.last_variables = tool_call.arguments.get("variables", {})
-
-                    if exec_result.success:
+                    await asyncio.sleep(0.5)
+                    
+            elif event_type == "tool_call.success" or event_type == "tool_call.error":
+                # Once the MCP tool finishes executing, flush the internal state to the UI
+                if self.last_mcp_result is not None:
+                    res = self.last_mcp_result
+                    await asyncio.sleep(0.5) # Give the UI time to show EXTRACTING_VARIABLES
+                    if hasattr(res, "success") and res.success:
                         yield StreamEvent(
                             type=EventType.CALCULATION_COMPLETE,
                             data={
-                                "calc_id": tool_call.arguments.get("calc_id"),
-                                "outputs": exec_result.outputs,
-                                "audit_trace": exec_result.audit_trace,
+                                "calc_id": self.last_mcp_calc_id,
+                                "outputs": res.outputs,
+                                "audit_trace": res.audit_trace,
                             },
                         )
-                    else:
+                    elif hasattr(res, "errors"):
                         yield StreamEvent(
                             type=EventType.VALIDATION_ERROR,
-                            data={"errors": exec_result.errors},
+                            data={"errors": res.errors},
                         )
+                    self.last_mcp_result = None
+                    self.last_mcp_calc_id = None
 
-    async def _execute_tool(self, tool_call: ToolCall, session: Session) -> Dict[str, Any]:
-        """Execute a tool call and return the result."""
-        return await self.tools.execute_tool(tool_call.name, tool_call.arguments)
+        return
 
     @staticmethod
     def _variables_from_dict(raw: Dict[str, Any]) -> List[ExtractedVariable]:
@@ -378,13 +317,10 @@ class OrchestratorAgent:
 
     @staticmethod
     def _attachment_to_content(attachment: InputAttachment) -> Optional[Dict[str, Any]]:
-        mime_type = attachment.mime_type or "application/octet-stream"
+        mime_type = attachment.mime_type or "image/jpeg"
         data_url = f"data:{mime_type};base64,{attachment.data}"
         if attachment.kind == "image":
-            return {"type": "image_url", "image_url": {"url": data_url}}
-        if attachment.kind == "audio":
-            # LM Studio doesn't support audio parts yet
-            return None
+            return {"type": "image", "data_url": data_url}
         return None
 
     def _build_user_content(
@@ -402,7 +338,7 @@ class OrchestratorAgent:
 
         parts: List[Dict[str, Any]] = []
         if text:
-            parts.append({"type": "input_text", "text": text})
+            parts.append({"type": "text", "content": text})
 
         for attachment in attachments:
             part = self._attachment_to_content(attachment)

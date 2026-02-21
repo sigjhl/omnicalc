@@ -1,0 +1,8 @@
+{
+  "model": "medgemma-1.5-4b-it",
+  "system": "You are OmniCalc",
+  "input": [
+    {"type": "text", "text": "What is in this image?"},
+    {"type": "image", "image_url": {"url": "data:image/jpeg;base64,..."}}
+  ]
+}
