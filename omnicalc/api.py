@@ -239,6 +239,7 @@ def _transcribe_with_vad(pcm16: np.ndarray, sample_rate: int) -> str:
 
     from ten_vad import TenVad
 
+    vad = TenVad()
     pcm16 = _resample_to_16k(pcm16, sample_rate)
     SR = 16000
     FRAME_SIZE = 256

@@ -28,8 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSettingsBtn: document.getElementById('closeSettingsBtn'),
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
         hotkeySelect: document.getElementById('hotkeySelect'),
-        asrHotkeySelect: document.getElementById('asrHotkeySelect'),
-        captureHotkeySelect: document.getElementById('captureHotkeySelect'),
+        asrHotkeyInput: document.getElementById('asrHotkeyInput'),
+        captureHotkeyInput: document.getElementById('captureHotkeyInput'),
+        clearAsrHotkeyBtn: document.getElementById('clearAsrHotkeyBtn'),
+        clearCaptureHotkeyBtn: document.getElementById('clearCaptureHotkeyBtn'),
 
         captureOverlay: document.getElementById('captureOverlay'),
         captureCanvas: document.getElementById('captureCanvas')
@@ -52,8 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAssistantBubble: null,
         typingIndicator: null,
         sendHotkey: localStorage.getItem('omnicalc_send_hotkey') || 'enter',
-        asrHotkey: localStorage.getItem('omnicalc_asr_hotkey') || 'cmd_r',
-        captureHotkey: localStorage.getItem('omnicalc_capture_hotkey') || 'cmd_shift_x'
+        asrHotkey: localStorage.getItem('omnicalc_asr_hotkey') || 'Cmd+R',
+        captureHotkey: localStorage.getItem('omnicalc_capture_hotkey') || 'Cmd+Shift+X'
     };
 
     // --- Initialization ---
@@ -71,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If we want to restore saved model...
             }
             if (DOM.hotkeySelect) DOM.hotkeySelect.value = State.sendHotkey;
-            if (DOM.asrHotkeySelect) DOM.asrHotkeySelect.value = State.asrHotkey;
-            if (DOM.captureHotkeySelect) DOM.captureHotkeySelect.value = State.captureHotkey;
+            if (DOM.asrHotkeyInput) DOM.asrHotkeyInput.value = State.asrHotkey;
+            if (DOM.captureHotkeyInput) DOM.captureHotkeyInput.value = State.captureHotkey;
         } catch (e) {
             console.error('Storage access error', e);
         }
@@ -612,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MedASR Integration ---
 
+
     async function toggleRecording() {
         if (State.isProcessing) return;
 
@@ -638,10 +641,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const loaded = await loadMedASR();
         if (!loaded) return;
 
+        State.isRecording = true;
+        DOM.recordBtn.classList.remove('inactive');
+        DOM.recordBtn.classList.add('active');
+
+        if (DOM.textInput.value && !DOM.textInput.value.endsWith(' ')) {
+            DOM.textInput.value += ' ';
+        }
+
         try {
             State.medasr.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (e) {
             showErrorToast("Mic access denied or unavailable: " + e.message);
+            stopRecording();
             return;
         }
 
@@ -836,41 +848,91 @@ document.addEventListener('DOMContentLoaded', () => {
             try { localStorage.setItem('omnicalc_send_hotkey', State.sendHotkey); } catch (err) { }
         });
 
-        DOM.asrHotkeySelect.addEventListener('change', (e) => {
-            State.asrHotkey = e.target.value;
-            try { localStorage.setItem('omnicalc_asr_hotkey', State.asrHotkey); } catch (err) { }
-        });
+        function formatHotkey(e) {
+            const keys = [];
+            if (e.ctrlKey) keys.push('Ctrl');
+            if (e.metaKey) keys.push('Cmd');
+            if (e.altKey) keys.push('Alt');
+            if (e.shiftKey) keys.push('Shift');
+            if (e.key !== 'Control' && e.key !== 'Meta' && e.key !== 'Alt' && e.key !== 'Shift') {
+                let keyName = e.key;
+                if (keyName === ' ') keyName = 'Space';
+                keys.push(keyName.length === 1 ? keyName.toUpperCase() : keyName);
+            }
+            return keys.join('+');
+        }
 
-        DOM.captureHotkeySelect.addEventListener('change', (e) => {
-            State.captureHotkey = e.target.value;
-            try { localStorage.setItem('omnicalc_capture_hotkey', State.captureHotkey); } catch (err) { }
-        });
+        function bindHotkeyInput(inputEl, clearBtn, stateKey, storageKey) {
+            if (!inputEl) return;
+
+            let originalValue = '';
+
+            inputEl.addEventListener('focus', () => {
+                originalValue = inputEl.value;
+                inputEl.value = 'Press new key...';
+                inputEl.style.color = 'var(--text-accent, #3b82f6)';
+                inputEl.style.borderColor = 'var(--text-accent, #3b82f6)';
+            });
+
+            inputEl.addEventListener('blur', () => {
+                if (inputEl.value === 'Press new key...') {
+                    inputEl.value = originalValue;
+                }
+                inputEl.style.color = '';
+                inputEl.style.borderColor = '';
+            });
+
+            inputEl.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.key === 'Escape') {
+                    inputEl.blur();
+                    return;
+                }
+                const hotkeyStr = formatHotkey(e);
+                // Do not register if it's just a lonely modifier key
+                if (hotkeyStr && !['Ctrl', 'Cmd', 'Alt', 'Shift'].includes(hotkeyStr)) {
+                    inputEl.value = hotkeyStr;
+                    State[stateKey] = hotkeyStr;
+                    try { localStorage.setItem(storageKey, hotkeyStr); } catch (err) { }
+                    setTimeout(() => inputEl.blur(), 100);
+                }
+            });
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    inputEl.value = 'None';
+                    State[stateKey] = 'None';
+                    try { localStorage.setItem(storageKey, 'None'); } catch (err) { }
+                });
+            }
+        }
+
+        bindHotkeyInput(DOM.asrHotkeyInput, DOM.clearAsrHotkeyBtn, 'asrHotkey', 'omnicalc_asr_hotkey');
+        bindHotkeyInput(DOM.captureHotkeyInput, DOM.clearCaptureHotkeyBtn, 'captureHotkey', 'omnicalc_capture_hotkey');
 
         // Fast Keyboard Shortcuts Mapping
         window.addEventListener('keydown', (e) => {
-            if (!DOM.settingsModal.classList.contains('hidden')) return;
+            if (!DOM.settingsModal || !DOM.settingsModal.classList.contains('hidden')) return;
 
-            const isCmd = e.ctrlKey || e.metaKey;
+            const pressed = formatHotkey(e);
 
             // Screen Capture Hotkey
-            if (isCmd && e.shiftKey && e.key.toLowerCase() === 'x' && State.captureHotkey === 'cmd_shift_x') {
+            if (pressed === State.captureHotkey && State.captureHotkey !== 'None') {
                 e.preventDefault();
                 startScreenCapture();
-            } else if (isCmd && e.shiftKey && e.key.toLowerCase() === 's' && State.captureHotkey === 'cmd_shift_s') {
-                e.preventDefault();
-                startScreenCapture();
+                return;
             }
 
             // ASR Hotkey
-            if (isCmd && e.key.toLowerCase() === 'r' && State.asrHotkey === 'cmd_r') {
+            if (pressed === State.asrHotkey && State.asrHotkey !== 'None') {
                 e.preventDefault();
                 toggleRecording();
-            } else if (isCmd && e.key.toLowerCase() === 'm' && State.asrHotkey === 'cmd_m') {
-                e.preventDefault();
-                toggleRecording();
+                return;
             }
 
             // Secondary enter mapped just in case fallback
+            const isCmd = e.ctrlKey || e.metaKey;
             if (isCmd && e.key === 'Enter') {
                 e.preventDefault();
                 submitRequest();

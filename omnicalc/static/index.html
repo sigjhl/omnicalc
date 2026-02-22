@@ -149,20 +149,32 @@
                     </select>
                 </div>
                 <div class="form-group" style="margin-top: 16px;">
-                    <label for="asrHotkeySelect">Microphone (ASR) Hotkey</label>
-                    <select id="asrHotkeySelect" class="form-select">
-                        <option value="cmd_r">Cmd/Ctrl + R</option>
-                        <option value="cmd_m">Cmd/Ctrl + M</option>
-                        <option value="none">Disabled</option>
-                    </select>
+                    <label>Microphone (ASR) Hotkey</label>
+                    <div style="display:flex; gap: 8px;">
+                        <input type="text" id="asrHotkeyInput" class="form-select" readonly
+                            placeholder="Click and press keys..." style="cursor: pointer; flex: 1; text-align: left;">
+                        <button id="clearAsrHotkeyBtn" class="icon-btn" title="Clear Hotkey"
+                            style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0 12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-top: 16px;">
-                    <label for="captureHotkeySelect">Screen Capture Hotkey</label>
-                    <select id="captureHotkeySelect" class="form-select">
-                        <option value="cmd_shift_x">Cmd/Ctrl + Shift + X</option>
-                        <option value="cmd_shift_s">Cmd/Ctrl + Shift + S</option>
-                        <option value="none">Disabled</option>
-                    </select>
+                    <label>Screen Capture Hotkey</label>
+                    <div style="display:flex; gap: 8px;">
+                        <input type="text" id="captureHotkeyInput" class="form-select" readonly
+                            placeholder="Click and press keys..." style="cursor: pointer; flex: 1; text-align: left;">
+                        <button id="clearCaptureHotkeyBtn" class="icon-btn" title="Clear Hotkey"
+                            style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0 12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
