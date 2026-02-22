@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsModal: document.getElementById('settingsModal'),
         closeSettingsBtn: document.getElementById('closeSettingsBtn'),
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+        themeSelect: document.getElementById('themeSelect'),
         hotkeySelect: document.getElementById('hotkeySelect'),
         asrHotkeyInput: document.getElementById('asrHotkeyInput'),
         captureHotkeyInput: document.getElementById('captureHotkeyInput'),
@@ -55,13 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
         typingIndicator: null,
         sendHotkey: localStorage.getItem('omnicalc_send_hotkey') || 'enter',
         asrHotkey: localStorage.getItem('omnicalc_asr_hotkey') || 'Cmd+R',
-        captureHotkey: localStorage.getItem('omnicalc_capture_hotkey') || 'Cmd+Shift+X'
+        captureHotkey: localStorage.getItem('omnicalc_capture_hotkey') || 'Cmd+Shift+X',
+        theme: localStorage.getItem('omnicalc_theme') || 'system'
     };
 
     // --- Initialization ---
     init();
 
     async function init() {
+        applyTheme(State.theme);
         setupEventListeners();
         await refreshModels();
         setStatus('ready', 'System Ready');
@@ -72,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (savedModel) {
                 // If we want to restore saved model...
             }
+            if (DOM.themeSelect) DOM.themeSelect.value = State.theme;
             if (DOM.hotkeySelect) DOM.hotkeySelect.value = State.sendHotkey;
             if (DOM.asrHotkeyInput) DOM.asrHotkeyInput.value = State.asrHotkey;
             if (DOM.captureHotkeyInput) DOM.captureHotkeyInput.value = State.captureHotkey;
@@ -79,6 +83,29 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Storage access error', e);
         }
     }
+
+    // --- Theme Logic ---
+    function applyTheme(themeValue) {
+        document.body.classList.remove('theme-light', 'theme-dark');
+
+        let activeTheme = themeValue;
+        if (themeValue === 'system') {
+            activeTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        if (activeTheme === 'light') {
+            document.body.classList.add('theme-light');
+        } else {
+            document.body.classList.add('theme-dark');
+        }
+    }
+
+    // Listen for system theme changes if set to system
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+        if (State.theme === 'system') {
+            applyTheme('system');
+        }
+    });
 
     // --- Core API Interactions ---
 
@@ -244,20 +271,28 @@ document.addEventListener('DOMContentLoaded', () => {
         msgDiv.className = 'message user';
 
         const bubble = document.createElement('div');
-        bubble.className = 'msg-bubble';
+        bubble.className = 'card user-card';
+        bubble.style.margin = '0';
 
         let contentHtml = '';
         if (attachment) {
             contentHtml += `<div style="font-size:0.8rem; margin-bottom:4px; opacity:0.8;">&#128206; ${attachment.name}</div>`;
         }
         if (text) {
-            // Very simple escape
             const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            contentHtml += `<div>${safeText.replace(/\\n/g, '<br/>')}</div>`;
+            contentHtml += `<div style="padding-top: 8px; line-height: 1.5;">${safeText.replace(/\\n/g, '<br/>')}</div>`;
         } else {
-            contentHtml += `<div><em>[Image attached]</em></div>`;
+            contentHtml += `<div style="padding-top: 8px;"><em>[Image attached]</em></div>`;
         }
-        bubble.innerHTML = contentHtml;
+
+        bubble.innerHTML = `
+            <div class="card-title" style="color: var(--accent-primary);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                User Query
+            </div>
+            ${contentHtml}
+        `;
+
         msgDiv.appendChild(bubble);
         DOM.chatContainer.appendChild(msgDiv);
         scrollToBottom();
@@ -833,7 +868,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setStatus('ready', 'New session started');
         });
 
-        DOM.settingsBtn.addEventListener('click', () => DOM.settingsModal.classList.remove('hidden'));
+        DOM.settingsBtn.addEventListener('click', () => {
+            if (DOM.themeSelect) DOM.themeSelect.value = State.theme;
+            if (DOM.hotkeySelect) DOM.hotkeySelect.value = State.sendHotkey;
+            DOM.settingsModal.classList.remove('hidden');
+        });
         const closeModals = () => DOM.settingsModal.classList.add('hidden');
 
         DOM.closeSettingsBtn.addEventListener('click', closeModals);
@@ -841,7 +880,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === DOM.settingsModal) closeModals();
         });
 
-        DOM.saveSettingsBtn.addEventListener('click', closeModals);
+        DOM.saveSettingsBtn.addEventListener('click', () => {
+            if (DOM.themeSelect) {
+                State.theme = DOM.themeSelect.value;
+                localStorage.setItem('omnicalc_theme', State.theme);
+                applyTheme(State.theme);
+            }
+            if (DOM.hotkeySelect) {
+                State.sendHotkey = DOM.hotkeySelect.value;
+                localStorage.setItem('omnicalc_send_hotkey', State.sendHotkey);
+            }
+            closeModals();
+            DOM.textInput.focus();
+        });
 
         DOM.hotkeySelect.addEventListener('change', (e) => {
             State.sendHotkey = e.target.value;

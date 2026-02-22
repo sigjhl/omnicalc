@@ -3,6 +3,7 @@
     --bg-surface: #121212;
     --bg-panel: #1e1e1e;
     --bg-panel-hover: #2a2a2a;
+    --bg-blur: rgba(18, 18, 18, 0.85);
 
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
@@ -61,7 +62,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: rgba(18, 18, 18, 0.85);
+    background: var(--bg-blur);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-color);
@@ -171,13 +172,50 @@ body {
     text-align: center;
     gap: 16px;
     opacity: 0.8;
+    --msg-opacity: 0.8;
+}
+
+body.theme-light {
+    --bg-base: #f8fafc;
+    /* Slate 50 */
+    --bg-surface: #ffffff;
+    /* White */
+    --bg-panel: #f1f5f9;
+    /* Slate 100 */
+    --bg-panel-hover: #e2e8f0;
+    /* Slate 200 */
+    --bg-modal: #ffffff;
+    /* White */
+    --bg-blur: rgba(255, 255, 255, 0.85);
+
+    --text-primary: #0f172a;
+    /* Slate 900 */
+    --text-secondary: #475569;
+    /* Slate 600 */
+    --text-tertiary: #94a3b8;
+    /* Slate 400 */
+
+    --accent-primary: #3b82f6;
+    /* Blue 500 */
+    --accent-hover: #2563eb;
+    /* Blue 600 */
+    --danger: #ef4444;
+    /* Red 500 */
+
+    --border-color: #e2e8f0;
+    /* Slate 200 */
+    --border-hover: #cbd5e1;
+    /* Slate 300 */
+
+    /* Used for icons, faint things */
+    --msg-opacity: 1;
 }
 
 .logo-large {
     width: 64px;
     height: 64px;
     border-radius: 20px;
-    background: linear-gradient(135deg, var(--bg-panel), #2a2a2a);
+    background: linear-gradient(135deg, var(--bg-panel), var(--bg-panel-hover));
     border: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -244,7 +282,7 @@ body {
     align-self: center;
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    color: var(--accent-danger);
     font-family: var(--font-mono);
     font-size: 0.85rem;
     padding: 8px 12px;
@@ -372,15 +410,15 @@ body {
 
 /* Input Area */
 .input-container {
-    padding: 12px 16px 16px;
-    background: rgba(18, 18, 18, 0.85);
+    padding: 16px;
+    background: var(--bg-blur);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-bottom: env(safe-area-inset-bottom, 16px);
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 .attachments-area {
@@ -425,17 +463,17 @@ body {
     background: var(--bg-panel);
     border-radius: var(--radius-xl);
     border: 1px solid var(--border-color);
-    padding: 10px 16px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
 }
 
 .textarea-wrapper:focus-within {
     border-color: var(--accent-primary);
-    background: #222;
+    background: var(--bg-surface);
 }
 
-textarea {
+.chat-input {
     width: 100%;
     background: transparent;
     border: none;
@@ -446,6 +484,12 @@ textarea {
     max-height: 120px;
     outline: none;
     line-height: 1.4;
+    transition: color 0.3s ease;
+    padding: 10px 0;
+    margin: 0;
+    overflow-y: hidden;
+    box-sizing: border-box;
+    display: block;
 }
 
 textarea::placeholder {
@@ -640,4 +684,36 @@ textarea::placeholder {
 
 .spin {
     animation: spin 1s linear infinite;
+}
+
+/* Distinct Solid Color for Stacked User Card */
+.user-card {
+    background: var(--bg-surface);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    border-radius: var(--radius-lg);
+    border: 1px solid;
+    padding: 16px;
+    margin-bottom: 24px;
+    width: fit-content;
+    display: inline-block;
+}
+
+body.theme-light .user-card {
+    background: #f0f9ff;
+    /* Light blue tint for user messages */
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }

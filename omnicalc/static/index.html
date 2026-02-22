@@ -87,7 +87,7 @@
                     </svg>
                 </button>
                 <div class="textarea-wrapper">
-                    <textarea id="textInput" placeholder="Message OmniCalc..." rows="1"></textarea>
+                    <textarea id="textInput" class="chat-input" placeholder="Message OmniCalc..." rows="1"></textarea>
                 </div>
                 <button id="captureBtn" class="action-btn circle-btn inactive" title="Capture Screen (Cmd+Shift+X)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -140,6 +140,14 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="themeSelect">Theme</label>
+                    <select id="themeSelect" class="form-select">
+                        <option value="system">System Default</option>
+                        <option value="dark">Dark Mode</option>
+                        <option value="light">Light Mode</option>
+                    </select>
                 </div>
                 <div class="form-group" style="margin-top: 16px;">
                     <label for="hotkeySelect">Send Message Hotkey</label>
