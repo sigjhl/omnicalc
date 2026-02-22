@@ -109,6 +109,7 @@ class OrchestratorRequest(BaseModel):
     model: Optional[str] = None  # Optional LLM model override
     attachments: Optional[List[InputAttachment]] = None
     allowed_calculators: Optional[List[str]] = None  # Filter to specific calculator IDs
+    mcp_url: Optional[str] = None  # Dynamic MCP URL based on request host
 
 
 class OrchestratorResponse(BaseModel):

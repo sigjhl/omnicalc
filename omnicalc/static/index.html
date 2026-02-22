@@ -3,51 +3,130 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>OmniCalc</title>
-
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- CSS -->
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 
 <body>
     <div class="app-container">
-
+        <!-- Header -->
         <header class="app-header">
-            <div class="header-content">
-                <div class="logo-area">
-                    <h1>OmniCalc</h1>
-                    <span class="version-tag">Alpha</span>
-                </div>
-                <button id="settingsBtn" class="icon-btn settings-btn" aria-label="Settings">
-                    <!-- Config Icon SVG -->
+            <div class="header-left">
+                <h1>OmniCalc</h1>
+                <span class="status-indicator ready" id="statusIndicator" title="System Ready"></span>
+            </div>
+            <div class="header-right">
+                <button id="newSessionBtn" class="icon-btn" title="New Session">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path
-                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
-                        </path>
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                        <path d="M16 21v-5h5" />
+                    </svg>
+                </button>
+                <button id="settingsBtn" class="icon-btn" title="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
                     </svg>
                 </button>
             </div>
-
-            <!-- Global Status Bar -->
-            <div id="statusBar" class="status-bar hidden">
-                <div class="status-indicator"></div>
-                <span id="statusText">System Ready</span>
-            </div>
         </header>
 
-        <main class="main-content">
-            <!-- Left Column: Input -->
-            <section class="panel input-panel">
-                <div class="panel-header">
-                    <h2>Input</h2>
+        <!-- Chat History -->
+        <main class="chat-container" id="chatContainer">
+            <div class="welcome-message" id="welcomeMessage">
+                <div class="logo-large">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                        <line x1="8" y1="6" x2="16" y2="6" />
+                        <line x1="8" y1="10" x2="16" y2="10" />
+                        <line x1="12" y1="14" x2="12" y2="18" />
+                        <line x1="8" y1="14" x2="8" y2="14.01" />
+                        <line x1="16" y1="14" x2="16" y2="14.01" />
+                        <line x1="8" y1="18" x2="8" y2="18.01" />
+                        <line x1="16" y1="18" x2="16" y2="18.01" />
+                    </svg>
+                </div>
+                <h2>OmniCalc</h2>
+                <p>Your clinical calculation assistant.<br />Describe a patient scenario to begin.</p>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <footer class="input-container">
+            <div class="attachments-area" id="attachmentsArea" style="display:none;">
+                <div class="attachment-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span id="attachmentName">Screenshot</span>
+                    <button id="clearAttachmentBtn" class="clear-btn">&times;</button>
+                </div>
+            </div>
+
+            <div class="input-row">
+                <button id="recordBtn" class="action-btn circle-btn inactive" title="Voice Input (Cmd+R)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="22" />
+                    </svg>
+                </button>
+                <div class="textarea-wrapper">
+                    <textarea id="textInput" placeholder="Message OmniCalc..." rows="1"></textarea>
+                </div>
+                <button id="captureBtn" class="action-btn circle-btn inactive" title="Capture Screen (Cmd+Shift+X)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 15v2" />
+                    </svg>
+                </button>
+                <button id="sendBtn" class="action-btn circle-btn primary" title="Send (Cmd+Enter)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Screen Capture Overlay Template -->
+    <div id="captureOverlay" class="capture-overlay hidden">
+        <canvas id="captureCanvas"></canvas>
+        <div class="capture-instruction">Click and drag to select region. Press ESC to cancel.</div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button id="closeSettingsBtn" class="icon-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modelSelect">LLM Model</label>
                     <div class="model-selector">
                         <select id="modelSelect" class="form-select" disabled>
                             <option>Loading models...</option>
@@ -62,133 +141,28 @@
                         </button>
                     </div>
                 </div>
-
-                <div class="input-area">
-                    <textarea id="textInput" placeholder="Describe the clinical scenario..."></textarea>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="hotkeySelect">Send Message Hotkey</label>
+                    <select id="hotkeySelect" class="form-select">
+                        <option value="enter">Enter to Send, Shift+Enter for newline</option>
+                        <option value="cmd_enter">Cmd/Ctrl+Enter to Send, Enter for newline</option>
+                    </select>
                 </div>
-
-                <div class="attachments-area" id="attachmentsArea" style="display:none;">
-                    <div class="attachment-chip">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                        <span id="attachmentName">Screenshot attached</span>
-                        <button id="clearAttachmentBtn" class="clear-btn">&times;</button>
-                    </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="asrHotkeySelect">Microphone (ASR) Hotkey</label>
+                    <select id="asrHotkeySelect" class="form-select">
+                        <option value="cmd_r">Cmd/Ctrl + R</option>
+                        <option value="cmd_m">Cmd/Ctrl + M</option>
+                        <option value="none">Disabled</option>
+                    </select>
                 </div>
-
-                <div class="action-dock">
-                    <button id="recordBtn" class="action-btn record-btn inactive" data-hotkey-action="record">
-                        <span class="btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                <line x1="12" y1="19" x2="12" y2="22" />
-                            </svg>
-                        </span>
-                        <span class="btn-label">Record</span>
-                        <span class="btn-hotkey" id="hotkeyLabelRecord">Cmd+R</span>
-                    </button>
-
-                    <button id="captureBtn" class="action-btn capture-btn" data-hotkey-action="capture">
-                        <span class="btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="3" y1="3" x2="21" y2="21" />
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
-                                <path d="M12 4v4" />
-                                <path d="M4 12h4" />
-                            </svg>
-                        </span>
-                        <span class="btn-label">Capture</span>
-                        <span class="btn-hotkey" id="hotkeyLabelCapture">Cmd+Shift+X</span>
-                    </button>
-
-                    <div class="spacer"></div>
-
-                    <button id="sendBtn" class="action-btn send-btn primary" data-hotkey-action="send">
-                        <span class="btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13" />
-                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                            </svg>
-                        </span>
-                        <span class="btn-label">Send</span>
-                        <span class="btn-hotkey" id="hotkeyLabelSend">Cmd+Enter</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Right Column: Output -->
-            <section class="panel output-panel">
-                <div class="panel-header">
-                    <h2>Output</h2>
-                    <button id="newSessionBtn" class="secondary-btn">New Session</button>
-                </div>
-
-                <div class="output-content">
-                    <div class="output-block variables-block">
-                        <label>Extracted Variables</label>
-                        <pre id="variablesOutput" class="code-view empty">Waiting for input...</pre>
-                    </div>
-
-                    <div class="output-block result-block">
-                        <label>Calculator Result</label>
-                        <pre id="resultOutput" class="code-view empty">Waiting for input...</pre>
-                    </div>
-                </div>
-
-                <div class="agent-message-area">
-                    <label>Agent Message</label>
-                    <div id="agentMessage" class="message-bubble empty">No message</div>
-                    <div id="errorBox" class="error-bubble hidden"></div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Screen Capture Overlay Template -->
-    <div id="captureOverlay" class="capture-overlay hidden">
-        <canvas id="captureCanvas"></canvas>
-        <div class="capture-instruction">Click and drag to select region. Press ESC to cancel.</div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal-backdrop hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Settings & Hotkeys</h3>
-                <button id="closeSettingsBtn" class="icon-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="hotkey-settings">
-                    <p class="settings-desc">Click an input box and press your desired key combination.</p>
-
-                    <div class="form-group">
-                        <label for="hotkeyRecordInput">Toggle Record (MedASR)</label>
-                        <input type="text" id="hotkeyRecordInput" class="hotkey-input" readonly
-                            placeholder="Click to set...">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="hotkeyCaptureInput">Capture Screen Region</label>
-                        <input type="text" id="hotkeyCaptureInput" class="hotkey-input" readonly
-                            placeholder="Click to set...">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="hotkeySendInput">Send Request</label>
-                        <input type="text" id="hotkeySendInput" class="hotkey-input" readonly
-                            placeholder="Click to set...">
-                    </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="captureHotkeySelect">Screen Capture Hotkey</label>
+                    <select id="captureHotkeySelect" class="form-select">
+                        <option value="cmd_shift_x">Cmd/Ctrl + Shift + X</option>
+                        <option value="cmd_shift_s">Cmd/Ctrl + Shift + S</option>
+                        <option value="none">Disabled</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -197,8 +171,7 @@
         </div>
     </div>
 
-    <!-- Core App Logic -->
-    <script src="/static/app.js?v=4"></script>
+    <script src="/static/app.js?v=6"></script>
 </body>
 
 </html>

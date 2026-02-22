@@ -25,6 +25,7 @@ ORCHESTRATOR_SYSTEM_PROMPT = """You are OmniCalc, a clinical calculator assistan
 - NEVER call `execute_calc` again if you already have a successful result.
 - Be concise. No interpretation or explanation unless asked.
 - **CRITICAL**: Do NOT loop. Call execute_calc exactly ONCE per request.
+- **CRITICAL**: DO NOT output any conversational filler before calling tools (e.g. "Now execute.", "I will calculate that."). Just call the tool.
 
 ## Locale Defaults
 - {locale_description}

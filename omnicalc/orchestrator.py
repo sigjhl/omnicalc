@@ -218,7 +218,7 @@ class OrchestratorAgent:
             {
                 "type": "ephemeral_mcp",
                 "server_label": "omnicalc_tools",
-                "server_url": "http://localhost:8002/mcp/sse",
+                "server_url": getattr(request, "mcp_url", None) or "http://localhost:8002/mcp/sse",
                 "allowed_tools": ["calc_info", "execute_calc"]
             }
         ]
@@ -265,11 +265,32 @@ class OrchestratorAgent:
                         args = {}
                         
                 if tool_name == "execute_calc":
+                    calc_id = args.get("calc_id")
+                    variables = args.get("variables", {})
+                    
+                    try:
+                        from omnicalc.calculators import CALCULATORS
+                        if calc_id in CALCULATORS:
+                            calc_def = CALCULATORS[calc_id]["def"]
+                            unit_map = {inp.id: inp.canonical_unit for inp in calc_def.inputs}
+                            label_map = {inp.id: inp.label for inp in calc_def.inputs}
+                            augmented_vars = {}
+                            for k, v in variables.items():
+                                if isinstance(v, dict):
+                                    v_copy = dict(v)
+                                    v_copy["label"] = label_map.get(k, k)
+                                    augmented_vars[k] = v_copy
+                                else:
+                                    augmented_vars[k] = {"value": v, "unit": unit_map.get(k, ""), "label": label_map.get(k, k)}
+                            variables = augmented_vars
+                    except Exception:
+                        pass
+                        
                     yield StreamEvent(
                         type=EventType.EXTRACTING_VARIABLES,
                         data={
-                            "calc_id": args.get("calc_id"),
-                            "variables": args.get("variables", {}),
+                            "calc_id": calc_id,
+                            "variables": variables,
                         }
                     )
                     await asyncio.sleep(0.5)

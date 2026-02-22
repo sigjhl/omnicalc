@@ -99,8 +99,8 @@ def run_meld_na(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "success": True,
             "outputs": {
-                "meld_score": meld,
-                "meld_na_score": meld_na
+                "MELD Score": meld,
+                "MELD-Na Score": meld_na
             },
             "audit_trace": {
                 "inputs_used": inputs_used,

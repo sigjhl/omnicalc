@@ -15,7 +15,7 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from starlette.websockets import WebSocketState
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -428,7 +428,7 @@ async def load_medasr():
 
 
 @app.post("/orchestrate", response_model=OrchestratorResponse)
-async def orchestrate(request: OrchestratorRequest):
+async def orchestrate(req: Request, request: OrchestratorRequest):
     """
     Main endpoint for clinical calculation.
 
@@ -437,6 +437,9 @@ async def orchestrate(request: OrchestratorRequest):
     """
     if not _orchestrator:
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+
+    if not request.mcp_url:
+        request.mcp_url = f"http://{req.headers.get('host', 'localhost:8002')}/mcp/sse"
 
     try:
         response = await _orchestrator.process(request)
@@ -447,7 +450,7 @@ async def orchestrate(request: OrchestratorRequest):
 
 
 @app.post("/orchestrate/stream")
-async def orchestrate_stream(request: OrchestratorRequest):
+async def orchestrate_stream(req: Request, request: OrchestratorRequest):
     """
     Streaming endpoint for clinical calculation.
 
@@ -455,6 +458,9 @@ async def orchestrate_stream(request: OrchestratorRequest):
     """
     if not _orchestrator:
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+
+    if not request.mcp_url:
+        request.mcp_url = f"http://{req.headers.get('host', 'localhost:8002')}/mcp/sse"
 
     async def event_generator():
         try:
