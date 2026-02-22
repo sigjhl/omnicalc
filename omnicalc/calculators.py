@@ -23,7 +23,7 @@ class CalculatorDef(BaseModel):
     description: str
     version: str
     tags: List[str]
-    inputs: List[CalcInput]
+    inputs: Any  # Keep for backwards compatibility if needed
     presets: List[Dict[str, Any]] = []
 
 def _clamp(val: float, min_val: float, max_val: float) -> float:
@@ -35,17 +35,28 @@ def _parse_var(raw: Any, default_unit: str) -> tuple[float, str]:
         return float(raw.get("value", 0)), raw.get("unit", default_unit)
     return float(raw) if raw is not None else 0.0, default_unit
 
+from pydantic import Field
+
+class MeldNaInput(BaseModel):
+    """MELD-Na Score Inputs"""
+    serum_bilirubin: Any = Field(..., description="Serum Bilirubin", json_schema_extra={"unit": "mg/dL", "synonyms": ["bili", "total bilirubin"]})
+    inr: Any = Field(..., description="INR", json_schema_extra={"unit": "", "synonyms": ["prothrombin time ratio"]})
+    serum_creatinine: Any = Field(..., description="Serum Creatinine", json_schema_extra={"unit": "mg/dL", "synonyms": ["cr", "creatinine", "creat"]})
+    serum_sodium: Any = Field(..., description="Serum Sodium", json_schema_extra={"unit": "mEq/L", "synonyms": ["na", "sodium"]})
+
 def run_meld_na(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Execute the MELD-Na calculation."""
     try:
-        raw_bili = vars_dict.get("serum_bilirubin", vars_dict.get("bilirubin"))
-        raw_inr = vars_dict.get("inr")
-        raw_cr = vars_dict.get("serum_creatinine", vars_dict.get("creatinine", vars_dict.get("cr")))
-        raw_na = vars_dict.get("serum_sodium", vars_dict.get("sodium", vars_dict.get("na")))
+        # In the tools.py it allows variables to be extracted from Dict
+        # but also parses aliases. Pydantic aliases could be used, but since we rely on the schema
+        # synonyms right now, let's parse using the fields.
+        input_data = MeldNaInput.model_validate(vars_dict)
         
-        if raw_bili is None or raw_inr is None or raw_cr is None or raw_na is None:
-            return {"success": False, "errors": ["Missing required variables for MELD-Na."]}
-            
+        raw_bili = input_data.serum_bilirubin
+        raw_inr = input_data.inr
+        raw_cr = input_data.serum_creatinine
+        raw_na = input_data.serum_sodium
+        
         bili_val, bili_unit = _parse_var(raw_bili, "mg/dL")
         inr_val, inr_unit = _parse_var(raw_inr, "")
         cr_val, cr_unit = _parse_var(raw_cr, "mg/dL")
@@ -121,13 +132,9 @@ CALCULATORS: Dict[str, Dict[str, Any]] = {
             description="Model for End-Stage Liver Disease (MELD) and MELD-Na score for 3-month mortality.",
             version="1.0",
             tags=["hepatology", "mortality"],
-            inputs=[
-                CalcInput(id="serum_bilirubin", label="Serum Bilirubin", canonical_unit="mg/dL", synonyms=["bili", "total bilirubin"]),
-                CalcInput(id="inr", label="INR", canonical_unit="", synonyms=["prothrombin time ratio"]),
-                CalcInput(id="serum_creatinine", label="Serum Creatinine", canonical_unit="mg/dL", synonyms=["cr", "creatinine", "creat"]),
-                CalcInput(id="serum_sodium", label="Serum Sodium", canonical_unit="mEq/L", synonyms=["na", "sodium"])
-            ]
+            inputs=None
         ),
-        "run": run_meld_na
+        "run": run_meld_na,
+        "input_model": MeldNaInput
     }
 }

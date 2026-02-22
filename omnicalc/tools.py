@@ -157,6 +157,21 @@ class ToolHandler:
                 raise ValueError(f"Calculator '{calc_id}' not found")
                 
             calc_def = CALCULATORS[calc_id]["def"]
+            input_model = CALCULATORS[calc_id].get("input_model")
+
+            inputs = []
+            if input_model:
+                for field_name, field_info in input_model.model_fields.items():
+                    extra = field_info.json_schema_extra or {}
+                    inputs.append({
+                        "id": field_name,
+                        "label": field_info.description or field_name,
+                        "type": "number", # Defaulting to number for now
+                        "required": field_info.is_required(),
+                        "canonical_unit": extra.get("unit", ""),
+                        "synonyms": extra.get("synonyms", []),
+                        "constraints": extra.get("constraints", {})
+                    })
 
             result = CalcInfoResult(
                 calc_id=calc_id,
@@ -164,7 +179,7 @@ class ToolHandler:
                 description=calc_def.description,
                 version=calc_def.version,
                 tags=calc_def.tags,
-                inputs=[inp.model_dump() for inp in calc_def.inputs],
+                inputs=inputs,
                 presets=calc_def.presets,
             )
 
