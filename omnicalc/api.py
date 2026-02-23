@@ -57,7 +57,8 @@ async def execute_calc(calc_id: str, variables: dict) -> str:
     
     _orchestrator.last_mcp_calc_id = calc_id
     _orchestrator.last_mcp_result = res
-    return json.dumps(res.model_dump())
+    output_str = json.dumps(res.model_dump())
+    return f"[TOOL_RESULT]\n{output_str}\n[END_TOOL_RESULT]"
 
 @mcp_server.tool()
 async def calc_info(calc_id: str) -> str:
@@ -66,7 +67,8 @@ async def calc_info(calc_id: str) -> str:
         return "Error: Orchestrator not initialized"
     import json
     res = await _orchestrator.tools.calc_info(calc_id=calc_id)
-    return json.dumps(res.model_dump())
+    output_str = json.dumps(res.model_dump())
+    return f"[TOOL_RESULT]\n{output_str}\n[END_TOOL_RESULT]"
 
 
 @asynccontextmanager

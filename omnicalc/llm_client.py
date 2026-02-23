@@ -416,6 +416,7 @@ class LMStudioClient:
             "model": self.model,
             "input": user_input,
             "stream": True,
+            "stop": ["[END_TOOL_REQUEST]", "[END_TOOL_REQUEST]\n"]
         }
         
         if system_prompt:
