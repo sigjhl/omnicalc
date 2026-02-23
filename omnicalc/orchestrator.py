@@ -225,6 +225,8 @@ class OrchestratorAgent:
 
         full_content = ""
         tool_call_data = {}
+        tool_call_count = 0
+        consecutive_errors = 0
         
         async for event in self.llm.chat_v1_stream(
             user_input=user_content,
@@ -264,6 +266,11 @@ class OrchestratorAgent:
                     except json.JSONDecodeError:
                         args = {}
                         
+                tool_call_count += 1
+                if tool_call_count >= 5:
+                    yield StreamEvent(type=EventType.ERROR, data={"error": "Failed: Maximum of 5 tool calls reached without final user response."})
+                    break
+                        
                 if tool_name == "execute_calc":
                     calc_id = args.get("calc_id")
                     variables = args.get("variables", {})
@@ -296,6 +303,15 @@ class OrchestratorAgent:
                     await asyncio.sleep(0.5)
                     
             elif event_type == "tool_call.success" or event_type == "tool_call.error":
+                if event_type == "tool_call.error":
+                    consecutive_errors += 1
+                else:
+                    consecutive_errors = 0
+                    
+                if consecutive_errors >= 5:
+                    yield StreamEvent(type=EventType.ERROR, data={"error": "Failed: 5 consecutive tool call failures."})
+                    break
+
                 # Once the MCP tool finishes executing, flush the internal state to the UI
                 if self.last_mcp_result is not None:
                     res = self.last_mcp_result

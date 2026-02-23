@@ -285,10 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
             contentHtml += `<div style="padding-top: 8px;"><em>[Image attached]</em></div>`;
         }
 
+        const encodedText = encodeURIComponent(text || '');
         bubble.innerHTML = `
-            <div class="card-title" style="color: var(--accent-primary);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                User Query
+            <div class="card-title" style="color: var(--accent-primary); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    User Query
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="circle-btn copy-btn copy-user-btn" data-copy-type="user-text" data-copy-data="${encodedText}" style="width:24px; height:24px; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-secondary); cursor:pointer;" title="Copy Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button class="circle-btn edit-user-btn" data-raw-text="${encodedText}" style="width:24px; height:24px; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-secondary); cursor:pointer;" title="Edit Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                </div>
             </div>
             ${contentHtml}
         `;
@@ -414,57 +425,97 @@ document.addEventListener('DOMContentLoaded', () => {
         removeTypingIndicator();
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message system';
-        msgDiv.innerHTML = `<div class="message error-text">${text}</div>`;
+        msgDiv.innerHTML = `
+            <div class="card error">
+                <div class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Failed
+                </div>
+                <div style="font-size:0.9rem; color:#fca5a5; font-family:var(--font-mono);">${text}</div>
+            </div>
+        `;
         DOM.chatContainer.appendChild(msgDiv);
-        // Assuming closeModal() is defined elsewhere or should be added.
-        // If not defined, this will cause an error.
-        // For now, adding it as requested.
-        closeModal(); // This line was added based on the instruction.
     }
 
     // Chat Container Event Delegation
     DOM.chatContainer.addEventListener('click', (e) => {
         const btn = e.target.closest('.copy-btn');
-        if (!btn) return;
+        if (btn) {
+            try {
+                const type = btn.dataset.copyType;
+                const dataRaw = btn.dataset.copyData;
+                let text = "";
 
-        try {
-            const type = btn.dataset.copyType;
-            const data = JSON.parse(decodeURIComponent(btn.dataset.copyData));
-            let text = "";
+                if (type === 'user-text') {
+                    text = decodeURIComponent(dataRaw);
+                } else {
+                    const data = JSON.parse(decodeURIComponent(dataRaw));
+                    if (type === 'vars') {
+                        text = "Variables:\n";
+                        text += "--------------------------------------\n";
+                        data.forEach(v => {
+                            const name = v.label || formatTitleCase(v.key);
+                            const padding = " ".repeat(Math.max(0, 20 - name.length));
+                            text += `${name}${padding} | ${v.value} ${v.unit || ''}\n`;
+                        });
+                        text += "--------------------------------------\n";
+                    } else if (type === 'result') {
+                        text = "Calculation Result:\n";
+                        text += "--------------------------------------\n";
+                        Object.entries(data).forEach(([k, v]) => {
+                            const name = formatTitleCase(k);
+                            const padding = " ".repeat(Math.max(0, 20 - name.length));
+                            text += `${name}${padding} | ${v}\n`;
+                        });
+                        text += "--------------------------------------\n";
+                    }
+                }
 
-            if (type === 'vars') {
-                text = "Variables:\n";
-                text += "--------------------------------------\n";
-                data.forEach(v => {
-                    const name = v.label || formatTitleCase(v.key);
-                    const padding = " ".repeat(Math.max(0, 20 - name.length));
-                    text += `${name}${padding} | ${v.value} ${v.unit || ''}\n`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+                    btn.style.color = "var(--accent-success)";
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        btn.style.color = "var(--text-secondary)";
+                    }, 2000);
                 });
-                text += "--------------------------------------\n";
-            } else if (type === 'result') {
-                text = "Calculation Result:\n";
-                text += "--------------------------------------\n";
-                Object.entries(data).forEach(([k, v]) => {
-                    const name = formatTitleCase(k);
-                    const padding = " ".repeat(Math.max(0, 20 - name.length));
-                    text += `${name}${padding} | ${v}\n`;
-                });
-                text += "--------------------------------------\n";
+            } catch (err) {
+                console.error("Failed to copy", err);
             }
+            return;
+        }
 
-            navigator.clipboard.writeText(text).then(() => {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
-                btn.style.color = "var(--accent-success)";
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                    btn.style.color = "var(--text-secondary)";
-                }, 2000);
-            });
-        } catch (err) {
-            console.error("Failed to copy", err);
+        const editBtn = e.target.closest('.edit-user-btn');
+        if (editBtn) {
+            try {
+                const rawText = decodeURIComponent(editBtn.dataset.rawText || '');
+                DOM.textInput.value = rawText;
+                adjustTextareaHeight();
+
+                // Delete this user message and all subsequent messages
+                const userMsgDiv = editBtn.closest('.message.user');
+                if (userMsgDiv) {
+                    let nextNode = userMsgDiv.nextSibling;
+                    while (nextNode) {
+                        const toRemove = nextNode;
+                        nextNode = nextNode.nextSibling;
+                        toRemove.remove();
+                    }
+                    userMsgDiv.remove();
+                }
+
+                // Generate a fresh session ID so history resets back to system
+                State.sessionId = crypto.randomUUID();
+                setStatus('ready', 'Editing previous message');
+                DOM.textInput.focus();
+            } catch (err) {
+                console.error("Failed to edit", err);
+            }
+            return;
         }
     });
+
 
     // --- Stream Handlers ---
 
