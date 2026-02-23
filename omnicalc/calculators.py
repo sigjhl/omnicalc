@@ -39,7 +39,7 @@ from pydantic import Field
 
 class MeldNaInput(BaseModel):
     """MELD-Na Score Inputs"""
-    serum_bilirubin: Any = Field(..., description="Serum Bilirubin", json_schema_extra={"unit": "mg/dL", "synonyms": ["bili", "total bilirubin"]})
+    serum_bilirubin: Any = Field(..., description="Serum Bilirubin", json_schema_extra={"unit": "mg/dL", "synonyms": ["bili", "total bilirubin", "bilirubin"]})
     inr: Any = Field(..., description="INR", json_schema_extra={"unit": "", "synonyms": ["prothrombin time ratio"]})
     serum_creatinine: Any = Field(..., description="Serum Creatinine", json_schema_extra={"unit": "mg/dL", "synonyms": ["cr", "creatinine", "creat"]})
     serum_sodium: Any = Field(..., description="Serum Sodium", json_schema_extra={"unit": "mEq/L", "synonyms": ["na", "sodium"]})
@@ -47,10 +47,17 @@ class MeldNaInput(BaseModel):
 def run_meld_na(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Execute the MELD-Na calculation."""
     try:
-        # In the tools.py it allows variables to be extracted from Dict
-        # but also parses aliases. Pydantic aliases could be used, but since we rely on the schema
-        # synonyms right now, let's parse using the fields.
-        input_data = MeldNaInput.model_validate(vars_dict)
+        # Pre-process vars_dict to map synonyms back to canonical keys
+        processed_vars = dict(vars_dict)
+        for field_name, field_info in MeldNaInput.model_fields.items():
+            if field_name not in processed_vars:
+                synonyms = (field_info.json_schema_extra or {}).get("synonyms", [])
+                for syn in synonyms:
+                    if syn in processed_vars:
+                        processed_vars[field_name] = processed_vars[syn]
+                        break
+        
+        input_data = MeldNaInput.model_validate(processed_vars)
         
         raw_bili = input_data.serum_bilirubin
         raw_inr = input_data.inr

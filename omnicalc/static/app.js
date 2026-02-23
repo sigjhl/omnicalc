@@ -136,12 +136,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data.models || data.models.length === 0) {
                 DOM.modelSelect.innerHTML = '<option value="">No models found</option>';
             } else {
+                const savedModel = localStorage.getItem('omnicalc_model');
+                let foundSelection = false;
+
+                let modelToSelect = savedModel;
+                if (!modelToSelect || !data.models.includes(modelToSelect)) {
+                    const gemmaModel = data.models.find(m => m.toLowerCase().includes('medgemma'));
+                    if (gemmaModel) {
+                        modelToSelect = gemmaModel;
+                    } else if (data.selected_model && data.models.includes(data.selected_model)) {
+                        modelToSelect = data.selected_model;
+                    } else {
+                        modelToSelect = data.models[0];
+                    }
+                    localStorage.setItem('omnicalc_model', modelToSelect);
+                }
+
                 data.models.forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = opt.textContent = m;
-                    if (data.selected_model === m) opt.selected = true;
+                    if (m === modelToSelect) {
+                        opt.selected = true;
+                        foundSelection = true;
+                    }
                     DOM.modelSelect.appendChild(opt);
                 });
+
+                if (!foundSelection && data.models.length > 0 && !Array.from(DOM.modelSelect.options).some(o => o.selected)) {
+                    const defaultOpt = Array.from(DOM.modelSelect.options).find(o => o.value === data.selected_model) || DOM.modelSelect.options[0];
+                    defaultOpt.selected = true;
+                    localStorage.setItem('omnicalc_model', defaultOpt.value);
+                }
             }
         } catch (e) {
             DOM.modelSelect.innerHTML = '<option value="">Error loading models</option>';
@@ -879,6 +904,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Wiring Events ---
 
     function setupEventListeners() {
+        DOM.modelSelect.addEventListener('change', () => {
+            if (DOM.modelSelect.value) {
+                localStorage.setItem('omnicalc_model', DOM.modelSelect.value);
+            }
+        });
+
         DOM.recordBtn.addEventListener('click', toggleRecording);
         DOM.captureBtn.addEventListener('click', startScreenCapture);
         DOM.sendBtn.addEventListener('click', submitRequest);

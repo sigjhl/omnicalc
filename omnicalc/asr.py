@@ -8,31 +8,15 @@ def load_asr_model(model_path: str, backend: str = "mlx"):
     """Load the MedASR model."""
     logging.getLogger("transformers").setLevel(logging.ERROR)
 
-    try:
-        import torch
-        if torch.cuda.is_available():
-            backend = "transformers"
-    except ImportError:
-        pass
-
     if backend == "mlx":
-        try:
-            from mlx_audio.stt.utils import load as load_mlx
-            print(f"Loading MLX model from {model_path}...")
-            model = load_mlx(model_path)
-            return model, "mlx", model_path
-        except ImportError:
-            print("MLX not found, falling back to transformers backend.")
-            backend = "transformers"
-
-    if backend != "mlx":
+        from mlx_audio.stt.utils import load as load_mlx
+        print(f"Loading MLX model from {model_path}...")
+        model = load_mlx(model_path)
+        return model, "mlx", model_path
+    else:
+        import torch
         from transformers import AutoModelForCTC
-        if torch.cuda.is_available():
-            device = "cuda"
-        elif torch.backends.mps.is_available():
-            device = "mps"
-        else:
-            device = "cpu"
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
         print(f"Loading Transformers model (device: {device})...")
         model = AutoModelForCTC.from_pretrained(model_path)
         model.to(device)

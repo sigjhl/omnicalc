@@ -57,18 +57,20 @@ async def execute_calc(calc_id: str, variables: dict) -> str:
     
     _orchestrator.last_mcp_calc_id = calc_id
     _orchestrator.last_mcp_result = res
-    output_str = json.dumps(res.model_dump())
-    return f"[TOOL_RESULT]\n{output_str}\n[END_TOOL_RESULT]"
+    return json.dumps(res.model_dump())
 
 @mcp_server.tool()
 async def calc_info(calc_id: str) -> str:
     """Get the input schema for a clinical calculator. Returns field names, types, units, and constraints needed for execute_calc."""
     if not _orchestrator:
-        return "Error: Orchestrator not initialized"
+        import json
+        return json.dumps({"error": "Orchestrator not initialized"})
     import json
-    res = await _orchestrator.tools.calc_info(calc_id=calc_id)
-    output_str = json.dumps(res.model_dump())
-    return f"[TOOL_RESULT]\n{output_str}\n[END_TOOL_RESULT]"
+    try:
+        res = await _orchestrator.tools.calc_info(calc_id=calc_id)
+        return json.dumps(res.model_dump())
+    except Exception as e:
+        return json.dumps({"error": str(e)})
 
 
 @asynccontextmanager

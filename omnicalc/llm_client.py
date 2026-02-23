@@ -416,7 +416,6 @@ class LMStudioClient:
             "model": self.model,
             "input": user_input,
             "stream": True,
-            "stop": ["[END_TOOL_REQUEST]", "[END_TOOL_REQUEST]\n"]
         }
         
         if system_prompt:
@@ -439,6 +438,7 @@ class LMStudioClient:
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as e:
+                await response.aread()
                 import logging
                 logging.getLogger(__name__).error(f"LM Studio API Error: {response.text}")
                 raise e
