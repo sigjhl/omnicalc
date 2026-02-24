@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from typing import Any, Dict, List, Optional
-
 from .models import CalcInfoResult, ExecuteCalcResult
 from .calculators import CALCULATORS
 
@@ -172,6 +170,9 @@ class ToolHandler:
                         "synonyms": extra.get("synonyms", []),
                         "constraints": extra.get("constraints", {})
                     })
+            elif CALCULATORS[calc_id].get("schema"):
+                # Schema-backed calculators expose prebuilt input definitions.
+                inputs = CALCULATORS[calc_id]["schema"].get("inputs", [])
 
             result = CalcInfoResult(
                 calc_id=calc_id,
@@ -219,15 +220,15 @@ class ToolHandler:
         Returns:
             ExecuteCalcResult with outputs or errors
         """
-        # Enforce calc_info requirement
+        # Auto-bootstrap schema if model skipped calc_info.
         if not self.has_calc_info(calc_id):
-            return ExecuteCalcResult(
-                success=False,
-                errors=[
-                    f"calc_info must be called for '{calc_id}' before execute_calc. "
-                    "Call calc_info first to get the input schema."
-                ],
-            )
+            try:
+                await self.calc_info(calc_id)
+            except ValueError as e:
+                return ExecuteCalcResult(
+                    success=False,
+                    errors=[str(e)],
+                )
 
         try:
             if calc_id not in CALCULATORS:

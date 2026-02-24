@@ -1,0 +1,4036 @@
+{
+  "creatinine_clearance": {
+    "calc_id": "creatinine_clearance",
+    "title": "Creatinine Clearance (Cockcroft-Gault Equation)",
+    "description": "What is the patient's Creatinine Clearance using the Cockroft-Gault Equation in terms of mL/min? You should use the patient's adjusted body weight in kg instead of the patient's actual body weight if the patient is overweight or obese based on their BMI. If the patient's BMI's normal, set their adjusted body weight to the minimum of the ideal body and actual weight. If the patient is underweight, please set their adjusted body weight to their actual body weight.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "ckd_epi_gfr": {
+    "calc_id": "ckd_epi_gfr",
+    "title": "CKD-EPI Equations for Glomerular Filtration Rate",
+    "description": "Using the 2021 CKD-EPI Creatinine equation, what is the patient's Glomerular Filtration Rate (GFR) in terms of mL/min/1.73 m²?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "cha2ds2_vasc": {
+    "calc_id": "cha2ds2_vasc",
+    "title": "CHA2DS2-VASc Score for Atrial Fibrillation Stroke Risk",
+    "description": "What is the patient's CHA2DS2-VASc Score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "chf",
+        "label": "Congestive Heart Failure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "thromboembolism",
+        "label": "Thromboembolism history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "vascular_disease",
+        "label": "Vascular disease history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "diabetes",
+        "label": "Diabetes history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hypertension",
+        "label": "Hypertension history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "tia",
+        "label": "Transient Ischemic Attacks History",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "stroke",
+        "label": "Stroke",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "mean_arterial_pressure": {
+    "calc_id": "mean_arterial_pressure",
+    "title": "Mean Arterial Pressure (MAP)",
+    "description": "What is patient's mean arterial pressure in mm Hg?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diastolic_bp",
+        "label": "Diastolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "dbp",
+          "diastolic blood pressure"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "bmi": {
+    "calc_id": "bmi",
+    "title": "Body Mass Index (BMI)",
+    "description": "What is the patient's body mass mass index (BMI)? Your answer should be in terms of kg/m².",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "calcium_correction": {
+    "calc_id": "calcium_correction",
+    "title": "Calcium Correction for Hypoalbuminemia",
+    "description": "Using the Calcium Correction for Hypoalbuminemia formula, what is the patient's corrected calcium in mg/dL? Your may set your normal albumin concentration to be 4 g/dL.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_calcium",
+        "label": "Calcium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "ca",
+          "calcium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_albumin",
+        "label": "Albumin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "albumin",
+          "alb"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "wells_pe": {
+    "calc_id": "wells_pe",
+    "title": "Wells' Criteria for Pulmonary Embolism",
+    "description": "What is the patient's score of Wells' criteria for Pulmonary Embolism?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "previous_pe",
+        "label": "Previously Documented Pulmonary Embolism",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "immobilization_for_3days",
+        "label": "Immobilization for at least 3 days",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "malignancy_with_treatment",
+        "label": "Malignancy with treatment within 6 months or palliative",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "pe_number_one",
+        "label": "Pulmonary Embolism is #1 diagnosis OR equally likely",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "surgery_in_past4weeks",
+        "label": "Surgery in the previous 4 weeks",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_dvt",
+        "label": "Previously documented Deep Vein Thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hemoptysis",
+        "label": "Hemoptysis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "clinical_dvt",
+        "label": "Clinical signs and symptoms of Deep Vein Thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "mdrd_gfr": {
+    "calc_id": "mdrd_gfr",
+    "title": "MDRD GFR Equation",
+    "description": "Using the MDRD GFR Equation, what is the patient's Glomerular Filtration Rate (GFR) in terms of mL/min/1.73 m²? If the patient is black, please use the MDRD GFR Equation for blacks.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "race",
+        "label": "Race",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "race",
+          "ethnicity"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "ideal_body_weight": {
+    "calc_id": "ideal_body_weight",
+    "title": "Ideal Body Weight",
+    "description": "Using the Devine formula, what is the patient's ideal body weight?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "qtc_bazett": {
+    "calc_id": "qtc_bazett",
+    "title": "QTc Bazett Calculator",
+    "description": "Using the Bazett Formula for corrected QT interval, what is the patient's corrected QT interval in terms of msec?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "qt_interval",
+        "label": "QT Interval",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "msec",
+        "synonyms": [
+          "qt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "estimated_due_date": {
+    "calc_id": "estimated_due_date",
+    "title": "Estimated Due Date",
+    "description": "Using Naegele's Rule for estimated due date based on the last menstrual period and cycle length, what is the the patient's estimated due date? Your response should be in the format of M/D/Y (ie 08/31/2023, 07/03/2000) with just the date and no other text.",
+    "version": "1.0",
+    "tags": [
+      "obstetrics"
+    ],
+    "inputs": [
+      {
+        "id": "cycle_length",
+        "label": "cycle length",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "days",
+        "synonyms": [
+          "cycle length"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "last_menstrual_date",
+        "label": "Last menstrual date",
+        "type": "date",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "lmp",
+          "last menstrual period"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "child_pugh": {
+    "calc_id": "child_pugh",
+    "title": "Child-Pugh Score for Cirrhosis Mortality",
+    "description": "What is the patient's Child-Pugh Score?",
+    "version": "1.0",
+    "tags": [
+      "severity"
+    ],
+    "inputs": [
+      {
+        "id": "inr",
+        "label": "international normalized ratio",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "inr",
+          "prothrombin time ratio"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "ascites",
+        "label": "Ascites",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "ascites"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_albumin",
+        "label": "Albumin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "albumin",
+          "alb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bilirubin",
+        "label": "Bilirubin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bili",
+          "total bilirubin"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "encephalopathy",
+        "label": "Encephalopathy",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "encephalopathy"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "wells_dvt": {
+    "calc_id": "wells_dvt",
+    "title": "Wells' Criteria for DVT",
+    "description": "What is the patient's score of Wells' criteria for Deep Vein Thrombosis?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "alternative_to_dvt_diagnosis",
+        "label": "Alternative diagnosis to Deep Vein Thrombosis as likely or more likely",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "localized_tenderness_on_deep_venuous_system",
+        "label": "Localized tenderness along the deep venous system",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_dvt_documented",
+        "label": "Previously documented Deep Vein Thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "paralysis_paresis_immobilization_in_lower_extreme",
+        "label": "Paralysis, paresis, or recent plaster immobilization of the lower extremity",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "leg_swollen",
+        "label": "Entire Leg Swollen",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "bedridden_for_atleast_3_days",
+        "label": "Bedridden recently >3 days",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "active_cancer",
+        "label": "Active cancer",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "major_surgery_in_last_12_weeks",
+        "label": "Major surgery within 12 weeks",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "calf_swelling_3cm",
+        "label": "Calf swelling >3 centimeters compared to the other leg",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "collateral_superficial_veins",
+        "label": "Collateral (nonvaricose) superficial veins present",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "pitting_edema_on_symptomatic_leg",
+        "label": "Pitting edema, confined to symptomatic leg",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "rcri": {
+    "calc_id": "rcri",
+    "title": "Revised Cardiac Risk Index for Pre-Operative Risk",
+    "description": "What is the patient's score of the Revised Cardiac Risk Index for Pre-Operative Risk?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "congestive_heart_failure",
+        "label": "Congestive Heart Failure criteria for the Cardiac Risk Index rule",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "elevated_risk_surgery",
+        "label": "Elevated-risk surgery",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "ischemetic_heart_disease",
+        "label": "History of ischemic heart disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "pre_operative_insulin_treatment",
+        "label": "Pre-operative treatment with insulin",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "pre_operative_creatinine",
+        "label": "Pre-operative creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "pre-op creatinine"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "cerebrovascular_disease",
+        "label": "History of cerebrovascular disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "heart_score": {
+    "calc_id": "heart_score",
+    "title": "HEART Score for Major Cardiac Events",
+    "description": "What is the patient's score of the HEART Score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hypertension",
+        "label": "Hypertension history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "electrocardiogram",
+        "label": "Electrocardiogram Test",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "ekg",
+          "ecg",
+          "electrocardiogram"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diabetes_mellitus",
+        "label": "Diabetes mellitus",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "diabetes"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "smoking",
+        "label": "smoking",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "family_with_cvd",
+        "label": "parent or sibling with Cardiovascular disease before age 65",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "atherosclerotic_disease",
+        "label": "atherosclerotic disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "history",
+        "label": "Suspicion History",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "suspicion",
+          "history"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hypercholesterolemia",
+        "label": "hypercholesterolemia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "obesity",
+        "label": "obesity",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "tia",
+        "label": "Transient Ischemic Attacks History",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "initial_troponin",
+        "label": "Initial troponin",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "troponin",
+          "initial troponin"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "fib4": {
+    "calc_id": "fib4",
+    "title": "Fibrosis-4 (FIB-4) Index for Liver Fibrosis",
+    "description": "What is the patient's score of the Fibrosis 4 Index?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "alt",
+        "label": "Alanine aminotransferase",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "IU/L",
+        "synonyms": [
+          "alt",
+          "sgpt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "ast",
+        "label": "Aspartate aminotransferase",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "IU/L",
+        "synonyms": [
+          "ast",
+          "sgot"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "platelet_count",
+        "label": "Platelet count",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "10^9/L",
+        "synonyms": [
+          "platelets",
+          "plt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "centor_score": {
+    "calc_id": "centor_score",
+    "title": "Centor Score (Modified/McIsaac) for Strep Pharyngitis",
+    "description": "What is the patient's Centor Score?",
+    "version": "1.0",
+    "tags": [
+      "severity"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "cough_absent",
+        "label": "Cough Absent",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "°C",
+        "synonyms": [
+          "temp",
+          "temperature"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "tender_lymph_nodes",
+        "label": "Tender/swollen anterior cervical lymph nodes",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "exudate_swelling_tonsils",
+        "label": "Exudate or swelling on tonsils",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "glasgow_coma_score": {
+    "calc_id": "glasgow_coma_score",
+    "title": "Glasgow Coma Score (GCS)",
+    "description": "What is the patient's Glasgow Coma Score?",
+    "version": "1.0",
+    "tags": [
+      "severity"
+    ],
+    "inputs": [
+      {
+        "id": "gcs_motor",
+        "label": "Best motor response",
+        "type": "integer",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "motor response"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "gcs_eye",
+        "label": "Best eye response",
+        "type": "integer",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "eye response"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "gcs_verbal",
+        "label": "Best verbal response",
+        "type": "integer",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "verbal response"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "maintenance_fluids": {
+    "calc_id": "maintenance_fluids",
+    "title": "Maintenance Fluids Calculations",
+    "description": "Based on the patient's weight, what is the patient's maintenance fluid in mL/hr? ",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "meld_na": {
+    "calc_id": "meld_na",
+    "title": "MELD Na (UNOS/OPTN)",
+    "description": "What is the patient's MELD Na (UNOS/OPTN) score?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "cvvhd",
+        "label": "Continuous veno-venous hemodialysis for ≥24 hours in the past week",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "cvvhd"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "dialysis_twice",
+        "label": "Dialysis at least twice in the past week",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "dialysis twice weekly"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "inr",
+        "label": "international normalized ratio",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "inr",
+          "prothrombin time ratio"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bilirubin",
+        "label": "Bilirubin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bili",
+          "total bilirubin"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "steroid_conversion": {
+    "calc_id": "steroid_conversion",
+    "title": "Steroid Conversion Calculator",
+    "description": "",
+    "version": "1.0",
+    "tags": [
+      "dosage"
+    ],
+    "inputs": [
+      {
+        "id": "input_steroid",
+        "label": "input steroid",
+        "type": "text",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "current steroid"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "target_steroid",
+        "label": "target steroid",
+        "type": "text",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "desired steroid"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "has_bled": {
+    "calc_id": "has_bled",
+    "title": "HAS-BLED Score for Major Bleeding Risk",
+    "description": "What is the patient's HAS-BLED score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "liver_disease_has_bled",
+        "label": "Liver disease criteria for the HAS-BLED rule",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "renal_disease_has_bled",
+        "label": "Renal disease criteria for the HAS-BLED rule",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hypertension",
+        "label": "Hypertension",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "alcoholic_drinks",
+        "label": "Number of Alcoholic Drinks Per Week",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "stroke",
+        "label": "Stroke",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "medications_for_bleeding",
+        "label": "Medication usage predisposing to bleeding",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "prior_bleeding",
+        "label": "Prior major bleeding or predisposition to bleeding",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "labile_inr",
+        "label": "Labile international normalized ratio",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "labile inr"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "sodium_correction_hyperglycemia": {
+    "calc_id": "sodium_correction_hyperglycemia",
+    "title": "Sodium Correction for Hyperglycemia",
+    "description": "What is the patient's corrected sodium concentration for hyperglycemia in terms of mEq/L? Use the sodium correction equation based on the one derived in Hillier, 1999.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_glucose",
+        "label": "Glucose",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "glucose",
+          "blood glucose"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "glasgow_blatchford": {
+    "calc_id": "glasgow_blatchford",
+    "title": "Glasgow-Blatchford Bleeding Score (GBS)",
+    "description": "What is the patient's Glasgow-Blatchford Bleeding score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "bun",
+        "label": "Blood Urea Nitrogen (BUN)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bun"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "cardiac_failure",
+        "label": "Cardiac Failure Present",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hemoglobin",
+        "label": "Hemoglobin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "hgb",
+          "hb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "melena_present",
+        "label": "Melena Present",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "syncope",
+        "label": "Recent Syncope",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hepatic_disease_history",
+        "label": "Hepatic disease history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "apache2": {
+    "calc_id": "apache2",
+    "title": "APACHE II Score",
+    "description": "What is the patient's APACHE II score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "organ_failure_or_immunocompromise",
+        "label": "History of severe organ failure or immunocompromise",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "°C",
+        "synonyms": [
+          "temp",
+          "temperature"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "mean_arterial_pressure",
+        "label": "Mean arterial pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "map",
+          "mean arterial pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "ph",
+        "label": "pH",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "ph"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "respiratory_rate",
+        "label": "respiratory rate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "breaths/min",
+        "synonyms": [
+          "rr",
+          "resp rate"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_potassium",
+        "label": "Potassium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "k",
+          "potassium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "acute_renal_failure",
+        "label": "Acute renal failure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "chronic_renal_failure",
+        "label": "Chronic renal failure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hematocrit",
+        "label": "Hematocrit",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "%",
+        "synonyms": [
+          "hct"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "wbc",
+        "label": "White blood cell count",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "10^9/L",
+        "synonyms": [
+          "wbc",
+          "leukocytes"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "glasgow_coma_score",
+        "label": "Glasgow Coma Score",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "gcs"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "fio2",
+        "label": "FiO2",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "%",
+        "synonyms": [
+          "fio2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "pao2",
+        "label": "PaO2",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "pao2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "aa_gradient",
+        "label": "A-a gradient",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "a-a gradient"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diastolic_bp",
+        "label": "Diastolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "dbp",
+          "diastolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "surgery_type",
+        "label": "Surgery Type",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "surgery type"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "psi_cap": {
+    "calc_id": "psi_cap",
+    "title": "PSI Score: Pneumonia Severity Index for CAP",
+    "description": "What is the patient's Pneumonia Severity Index (PSI)?",
+    "version": "1.0",
+    "tags": [
+      "severity"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "ph",
+        "label": "pH",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "ph"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "bun",
+        "label": "Blood Urea Nitrogen (BUN)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bun"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "renal_disease",
+        "label": "Renal disease history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "cerebrovascular_disease",
+        "label": "Cerebrovascular disease history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "neoplastic_disease",
+        "label": "Neoplastic disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "liver_disease",
+        "label": "Liver disease history",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "chf",
+        "label": "Congestive Heart Failure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "nursing_home_resident",
+        "label": "Nursing home resident",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "partial_pressure_o2",
+        "label": "Partial pressure of oxygen",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "po2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "respiratory_rate",
+        "label": "respiratory rate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "breaths/min",
+        "synonyms": [
+          "rr",
+          "resp rate"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hematocrit",
+        "label": "Hematocrit",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "%",
+        "synonyms": [
+          "hct"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_glucose",
+        "label": "Glucose",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "glucose",
+          "blood glucose"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "°C",
+        "synonyms": [
+          "temp",
+          "temperature"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "pleural_effusion",
+        "label": "Pleural effusion on x-ray",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "altered_mental_status",
+        "label": "Altered mental status",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "serum_osmolality": {
+    "calc_id": "serum_osmolality",
+    "title": "Serum Osmolality",
+    "description": "What is the patient's serum osmolality in terms of mOsm/kg? You may take the alcohol content as 0 mg/dL.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_glucose",
+        "label": "Glucose",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "glucose",
+          "blood glucose"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "bun",
+        "label": "Blood Urea Nitrogen (BUN)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bun"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "homa_ir": {
+    "calc_id": "homa_ir",
+    "title": "HOMA-IR (Homeostatic Model Assessment for Insulin Resistance)",
+    "description": "What is the patient's HOMA-IR score?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_glucose",
+        "label": "Glucose",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "glucose",
+          "blood glucose"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_insulin",
+        "label": "Insulin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "μIU/mL",
+        "synonyms": [
+          "insulin"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "cci": {
+    "calc_id": "cci",
+    "title": "Charlson Comorbidity Index (CCI)",
+    "description": "What is the patient's Charlson Comorbidity Index (CCI)?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "mi",
+        "label": "Myocardial infarction",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "chf",
+        "label": "Congestive Heart Failure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "peripheral_vascular_disease",
+        "label": "Peripheral vascular disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "cva",
+        "label": "Cerebrovascular Accident",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "tia",
+        "label": "Transient Ischemic Attacks History",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "dementia",
+        "label": "Dementia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "copd",
+        "label": "Chronic Pulmonary Disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "connective_tissue_disease",
+        "label": "Connective tissue disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "peptic_ucler_disease",
+        "label": "Peptic ulcer disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "liver_disease",
+        "label": "Liver disease severity",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "liver disease"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diabetes_mellitus",
+        "label": "Diabetes mellitus",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "diabetes"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hemiplegia",
+        "label": "Hemiplegia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "moderate_to_severe_ckd",
+        "label": "Moderate to severe Chronic Kidney Disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "solid_tumor",
+        "label": "Solid tumor",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "solid tumor"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "leukemia",
+        "label": "Leukemia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "lymphoma",
+        "label": "Lymphoma",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "aids",
+        "label": "AIDS",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "feverpain": {
+    "calc_id": "feverpain",
+    "title": "FeverPAIN Score for Strep Pharyngitis",
+    "description": "What is the patient's FeverPAIN score?",
+    "version": "1.0",
+    "tags": [
+      "diagnosis"
+    ],
+    "inputs": [
+      {
+        "id": "symptom_onset",
+        "label": "Symptom onset <=3 days",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "purulent_tonsils",
+        "label": "Purulent tonsils",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "fever_24_hours",
+        "label": "Fever in past 24 hours",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "severe_tonsil_inflammation",
+        "label": "Severe tonsil inflammation",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "cough_coryza_absent",
+        "label": "Absence of cough or coryza",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "caprini_vte": {
+    "calc_id": "caprini_vte",
+    "title": "Caprini Score for Venous Thromboembolism (2005)",
+    "description": "What is the patient's Caprini Score for Venous Thromboembolism?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "surgery_type",
+        "label": "Surgery Type",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "surgery type"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "major_surgery",
+        "label": "Major Surgery in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "chf",
+        "label": "Congestive Heart Failure in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "sepsis",
+        "label": "Sepsis in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "pneumonia",
+        "label": "Pneumonia in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "immobilizing_plaster_case",
+        "label": "Immobilizing plaster cast in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hip_pelvis_leg_fracture",
+        "label": "Hip, pelvis, or leg fracture in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "stroke",
+        "label": "Stroke in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "multiple_trauma",
+        "label": "Multiple trauma in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "acute_spinal_chord_injury",
+        "label": "Acute spinal cord injury causing paralysis in the last month",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "varicose_veins",
+        "label": "Varicose veins",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "current_swollen_legs",
+        "label": "Current swollen legs",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "current_central_venuous",
+        "label": "Current central venous access",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_dvt",
+        "label": "Previously documented Deep Vein Thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_pe",
+        "label": "Previously Documented Pulmonary Embolism",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "family_history_thrombosis",
+        "label": "Family history of thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "positive_factor_v",
+        "label": "Positive Factor V Leiden",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "positive_prothrombin",
+        "label": "Positive prothrombin 20210A",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "serum_homocysteine",
+        "label": "Elevated serum homocysteine",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "positive_lupus_anticoagulant",
+        "label": "Positive lupus anticoagulant",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "elevated_anticardiolipin_antibody",
+        "label": "Elevated anticardiolipin antibody",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "heparin_induced_thrombocytopenia",
+        "label": "Heparin-induced thrombocytopenia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "congenital_acquired_thrombophilia",
+        "label": "Other congenital or acquired thrombophilia",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "mobility",
+        "label": "Mobility",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "mobility"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "inflammatory_bowel_disease",
+        "label": "History of inflammatory bowel disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "bmi",
+        "label": "Body Mass Index (BMI)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg/m²",
+        "synonyms": [
+          "bmi",
+          "body mass index"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "acute_myocardial_infarction",
+        "label": "Acute Myocardial infarction",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "copd",
+        "label": "Chronic Obstructive Pulmonary Disease",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "malignancy",
+        "label": "Present or previous malignancy",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "free_water_deficit": {
+    "calc_id": "free_water_deficit",
+    "title": "Free Water Deficit",
+    "description": "What is the patient's free water deficit in terms of kg? The desired serum sodium concentration is 140 mEq/L.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "anion_gap": {
+    "calc_id": "anion_gap",
+    "title": "Anion Gap",
+    "description": "What is the patient's anion gap in terms of mEq/L? ",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "fena": {
+    "calc_id": "fena",
+    "title": "Fractional Excretion of Sodium (FENa)",
+    "description": "What is the patient's Fractional Excretion of Sodium (FENa)? Please return your answer as a percentage value.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "urine_creatinine",
+        "label": "Urine creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "urine creatinine"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "urine_sodium",
+        "label": "Urine sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "urine sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "sofa": {
+    "calc_id": "sofa",
+    "title": "Sequential Organ Failure Assessment (SOFA) Score",
+    "description": "What is the patient's Sequential Organ Failure Assessment (SOFA) Score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "pao2",
+        "label": "PaO2",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "pao2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "fio2",
+        "label": "FiO2",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "%",
+        "synonyms": [
+          "fio2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "on_mechanical_ventilation",
+        "label": "On mechanical ventilation",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "mechanical ventilation"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "cpap",
+        "label": "Continuous positive airway pressure",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "cpap"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "platelet_count",
+        "label": "Platelet count",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "10^9/L",
+        "synonyms": [
+          "platelets",
+          "plt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "glasgow_coma_score",
+        "label": "Glasgow Coma Score",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "gcs"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bilirubin",
+        "label": "Bilirubin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bili",
+          "total bilirubin"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hypotension",
+        "label": "Hypotension",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "hypotension"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diastolic_bp",
+        "label": "Diastolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "dbp",
+          "diastolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "dopamine",
+        "label": "DOPamine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mcg/kg/min",
+        "synonyms": [
+          "dopamine"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "dobutamine",
+        "label": "DOBUTamine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mcg/kg/min",
+        "synonyms": [
+          "dobutamine"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "norepinephrine",
+        "label": "norEPINEPHrine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mcg/kg/min",
+        "synonyms": [
+          "norepinephrine",
+          "norepi"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "epinephrine",
+        "label": "EPINEPHrine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mcg/kg/min",
+        "synonyms": [
+          "epinephrine",
+          "epi"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_creatinine",
+        "label": "creatinine",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cr",
+          "creatinine",
+          "creat"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "urine_output",
+        "label": "Urine Output",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mL/day",
+        "synonyms": [
+          "urine output"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "ldl_calculated": {
+    "calc_id": "ldl_calculated",
+    "title": "LDL Calculated",
+    "description": "What is the patient's LDL cholestrol concentration? Please outuput your answer in terms of mg/dL.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "total_cholesterol",
+        "label": "Total cholesterol",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cholesterol"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hdl_cholesterol",
+        "label": "high-density lipoprotein cholesterol",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "hdl"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "triglycerides",
+        "label": "Triglycerides",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "tg",
+          "triglycerides"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "curb65": {
+    "calc_id": "curb65",
+    "title": "CURB-65 Score for Pneumonia Severity",
+    "description": "What is the patient's CURB-65 score?",
+    "version": "1.0",
+    "tags": [
+      "risk"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "diastolic_bp",
+        "label": "Diastolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "dbp",
+          "diastolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "bun",
+        "label": "Blood Urea Nitrogen (BUN)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "bun"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "respiratory_rate",
+        "label": "respiratory rate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "breaths/min",
+        "synonyms": [
+          "rr",
+          "resp rate"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "confusion",
+        "label": "Confusion",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "framingham_chd": {
+    "calc_id": "framingham_chd",
+    "title": "Framingham Risk Score for Hard Coronary Heart Disease",
+    "description": "Based on the Framingham Risk Score for Hard Coronary Heart Disease, what is the likelihood of 10-year risk of MI or death for this patient? Please return your answer as a percentage value.",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "systolic_bp",
+        "label": "Systolic Blood Pressure",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "sbp",
+          "systolic blood pressure"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "smoker",
+        "label": "Smoker",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "total_cholesterol",
+        "label": "Total cholesterol",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "cholesterol"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hdl_cholesterol",
+        "label": "high-density lipoprotein cholesterol",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mg/dL",
+        "synonyms": [
+          "hdl"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "bp_medicine",
+        "label": "Blood pressure being treated with medicines",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "perc_rule": {
+    "calc_id": "perc_rule",
+    "title": "PERC Rule for Pulmonary Embolism",
+    "description": "What are the number of criteria met for the PERC Rule for Pulmonary Embolism (PE)?",
+    "version": "1.0",
+    "tags": [
+      "diagnosis"
+    ],
+    "inputs": [
+      {
+        "id": "age",
+        "label": "age",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "years",
+        "synonyms": [
+          "age"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "hemoptysis",
+        "label": "Hemoptysis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "o2_saturation",
+        "label": "O₂ saturation percentage",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "%",
+        "synonyms": [
+          "o2 sat",
+          "spo2"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "recent_surgery_or_trauma",
+        "label": "Recent surgery or trauma",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_dvt",
+        "label": "Previously documented Deep Vein Thrombosis",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "previous_pe",
+        "label": "Previously Documented Pulmonary Embolism",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "unilateral_leg_swelling",
+        "label": "Unilateral Leg Swelling",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      },
+      {
+        "id": "hormonal_use",
+        "label": "Hormone use",
+        "type": "boolean",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "mme": {
+    "calc_id": "mme",
+    "title": "Morphine Milligram Equivalents (MME) Calculator",
+    "description": "Calculates the patient's daily Morphine Milligram Equivalents (MME) from their opioid prescriptions using the CDC 2022 conversion factors.",
+    "version": "1.0",
+    "tags": [
+      "dosage"
+    ],
+    "inputs": [
+      {
+        "id": "medications",
+        "label": "Opioid medications",
+        "type": "array",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "opioids",
+          "narcotics"
+        ],
+        "constraints": {
+          "item_schema": {
+            "drug": "One of: Codeine, FentaNYL buccal, FentaNYL patch, HYDROcodone, HYDROmorphone, Methadone, Morphine, OxyCODONE, OxyMORphone, Tapentadol, TraMADol, Buprenorphine",
+            "dose": "Numeric dose per administration",
+            "dose_unit": "mg for most opioids; mcg for fentaNYL",
+            "doses_per_day": "Number of doses taken per day"
+          },
+          "mme_conversion_factors": {
+            "Codeine": 0.15,
+            "FentaNYL buccal": 0.13,
+            "FentaNYL patch": 2.4,
+            "HYDROcodone": 1,
+            "HYDROmorphone": 5,
+            "Methadone": 4.7,
+            "Morphine": 1,
+            "OxyCODONE": 1.5,
+            "OxyMORphone": 3,
+            "Tapentadol": 0.4,
+            "TraMADol": 0.2,
+            "Buprenorphine": 10
+          }
+        }
+      }
+    ],
+    "presets": []
+  },
+  "sirs": {
+    "calc_id": "sirs",
+    "title": "SIRS Criteria",
+    "description": "What are the number of SIRS critiera met by the patient?",
+    "version": "1.0",
+    "tags": [
+      "diagnosis"
+    ],
+    "inputs": [
+      {
+        "id": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "°C",
+        "synonyms": [
+          "temp",
+          "temperature"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "respiratory_rate",
+        "label": "respiratory rate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "breaths/min",
+        "synonyms": [
+          "rr",
+          "resp rate"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "wbc",
+        "label": "White blood cell count",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "10^9/L",
+        "synonyms": [
+          "wbc",
+          "leukocytes"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "paco2",
+        "label": "PaCO2",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mmHg",
+        "synonyms": [
+          "paco2"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "qtc_fridericia": {
+    "calc_id": "qtc_fridericia",
+    "title": "QTc Fridericia Calculator",
+    "description": "Using the Fridericia Formula for corrected QT interval, what is the patient's corrected QT interval in terms of msec?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "qt_interval",
+        "label": "QT Interval",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "msec",
+        "synonyms": [
+          "qt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "qtc_framingham": {
+    "calc_id": "qtc_framingham",
+    "title": "QTc Framingham Calculator",
+    "description": "Using the Framingham Formula for corrected QT interval, what is the patient's corrected QT interval in terms of msec?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "qt_interval",
+        "label": "QT Interval",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "msec",
+        "synonyms": [
+          "qt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "qtc_hodges": {
+    "calc_id": "qtc_hodges",
+    "title": "QTc Hodges Calculator",
+    "description": "Using the Hodges Formula for corrected QT interval, what is the patient's corrected QT interval in terms of msec?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "qt_interval",
+        "label": "QT Interval",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "msec",
+        "synonyms": [
+          "qt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "qtc_rautaharju": {
+    "calc_id": "qtc_rautaharju",
+    "title": "QTc Rautaharju Calculator",
+    "description": "Using the Rautaharju Formula for corrected QT interval, what is the patient's corrected QT interval in terms of msec?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate or Pulse",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "beats/min",
+        "synonyms": [
+          "heart rate",
+          "pulse",
+          "hr"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "qt_interval",
+        "label": "QT Interval",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "msec",
+        "synonyms": [
+          "qt"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "bsa": {
+    "calc_id": "bsa",
+    "title": "Body Surface Area Calculator",
+    "description": "What is the patient's body surface area? Please output your answer in terms of m².",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "target_weight": {
+    "calc_id": "target_weight",
+    "title": "Target weight",
+    "description": "Based on the patient's height and target BMI, what is the patient's target weight in kg?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "bmi",
+        "label": "Body Mass Index (BMI)",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg/m²",
+        "synonyms": [
+          "bmi",
+          "body mass index"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "adjusted_body_weight": {
+    "calc_id": "adjusted_body_weight",
+    "title": "Adjusted Body Weight",
+    "description": "Using the adjusted body weight formula, what is the patient's adjusted body weight in terms of kg?",
+    "version": "1.0",
+    "tags": [
+      "physical"
+    ],
+    "inputs": [
+      {
+        "id": "sex",
+        "label": "sex",
+        "type": "categorical",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "sex",
+          "gender"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "weight",
+        "label": "weight",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "kg",
+        "synonyms": [
+          "weight",
+          "wt"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "height",
+        "label": "height",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "cm",
+        "synonyms": [
+          "height",
+          "ht"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "delta_gap": {
+    "calc_id": "delta_gap",
+    "title": "Delta Gap",
+    "description": "What is the patient's delta gap in mEq/L?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "delta_ratio": {
+    "calc_id": "delta_ratio",
+    "title": "Delta Ratio",
+    "description": "What is the patient's delta ratio?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "albumin_corrected_anion_gap": {
+    "calc_id": "albumin_corrected_anion_gap",
+    "title": "Albumin Corrected Anion Gap",
+    "description": "What is the patient's albumin corrected anion gap in mEq/L?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_albumin",
+        "label": "Albumin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "albumin",
+          "alb"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "albumin_corrected_delta_gap": {
+    "calc_id": "albumin_corrected_delta_gap",
+    "title": "Albumin Corrected Delta Gap",
+    "description": "What is the patient's albumin corrected delta gap in mEq/L?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_albumin",
+        "label": "Albumin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "albumin",
+          "alb"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "albumin_corrected_delta_ratio": {
+    "calc_id": "albumin_corrected_delta_ratio",
+    "title": "Albumin Corrected Delta Ratio",
+    "description": "What is the patient's albumin corrected delta ratio?",
+    "version": "1.0",
+    "tags": [
+      "laboratory"
+    ],
+    "inputs": [
+      {
+        "id": "serum_chloride",
+        "label": "Chloride",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "cl",
+          "chloride"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_bicarbonate",
+        "label": "Bicarbonate",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "hco3",
+          "bicarb"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_sodium",
+        "label": "Sodium",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "mEq/L",
+        "synonyms": [
+          "na",
+          "sodium"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "serum_albumin",
+        "label": "Albumin",
+        "type": "number",
+        "required": true,
+        "canonical_unit": "g/dL",
+        "synonyms": [
+          "albumin",
+          "alb"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "estimated_conception_date": {
+    "calc_id": "estimated_conception_date",
+    "title": "Estimated Date of Conception",
+    "description": "Based on the patient's last menstrual period, what is the the patient's estimated date of conception? Your answer should be in the format of M/D/Y (ie 08/31/2023, 07/03/2000) with just the date and not other text.",
+    "version": "1.0",
+    "tags": [
+      "obstetrics"
+    ],
+    "inputs": [
+      {
+        "id": "last_menstrual_date",
+        "label": "Last menstrual date",
+        "type": "date",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "lmp",
+          "last menstrual period"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  },
+  "estimated_gestational_age": {
+    "calc_id": "estimated_gestational_age",
+    "title": "Estimated Gestational Age",
+    "description": "Based on the patient's last menstrual period, what is the patient's estimated gestational age? Your answer should be a tuple, specifying the number of weeks and days (i.e. (4 weeks, 3 days), (0 weeks, 5 days), (1 week, 5 days), (8 weeks, 0 days)).",
+    "version": "1.0",
+    "tags": [
+      "obstetrics"
+    ],
+    "inputs": [
+      {
+        "id": "current_date",
+        "label": "Current Date",
+        "type": "date",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "current date",
+          "today"
+        ],
+        "constraints": {}
+      },
+      {
+        "id": "last_menstrual_date",
+        "label": "Last menstrual date",
+        "type": "date",
+        "required": true,
+        "canonical_unit": "",
+        "synonyms": [
+          "lmp",
+          "last menstrual period"
+        ],
+        "constraints": {}
+      }
+    ],
+    "presets": []
+  }
+}
