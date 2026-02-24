@@ -54,6 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat state tracking to append chunks to the same bubble
         currentAssistantBubble: null,
         typingIndicator: null,
+        pendingExecutionCardMsg: null,
+        pendingExecutionKey: null,
+        lastCompletedExecutionKey: null,
+        lastResultKey: null,
         sendHotkey: localStorage.getItem('omnicalc_send_hotkey') || 'enter',
         asrHotkey: localStorage.getItem('omnicalc_asr_hotkey') || 'Cmd+R',
         captureHotkey: localStorage.getItem('omnicalc_capture_hotkey') || 'Cmd+Shift+X',
@@ -219,6 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setProcessingState(true);
         setStatus('processing', 'Processing...');
+        State.pendingExecutionKey = null;
+        State.lastCompletedExecutionKey = null;
+        State.lastResultKey = null;
+        removePendingExecutionCard();
 
         // Prepare Assistant Bubble
         startAssistantResponse();
@@ -444,6 +452,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (State.isProcessing) {
             startAssistantResponse();
         }
+
+        return msgDiv;
+    }
+
+    function removePendingExecutionCard() {
+        if (State.pendingExecutionCardMsg && State.pendingExecutionCardMsg.parentNode) {
+            State.pendingExecutionCardMsg.parentNode.removeChild(State.pendingExecutionCardMsg);
+        }
+        State.pendingExecutionCardMsg = null;
+        State.pendingExecutionKey = null;
+    }
+
+    function stableSerialize(value) {
+        if (value === null || value === undefined) return String(value);
+        if (typeof value !== 'object') return JSON.stringify(value);
+        if (Array.isArray(value)) {
+            return `[${value.map(stableSerialize).join(',')}]`;
+        }
+        const keys = Object.keys(value).sort();
+        return `{${keys.map(k => `${JSON.stringify(k)}:${stableSerialize(value[k])}`).join(',')}}`;
+    }
+
+    function makeExecKey(calcId, variables) {
+        return `${calcId || ''}|${stableSerialize(variables || {})}`;
+    }
+
+    function makeResultKey(calcId, outputs) {
+        return `${calcId || ''}|${stableSerialize(outputs || {})}`;
     }
 
     function appendErrorMessage(text) {
@@ -562,19 +598,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = buildLoadingCard(calcId);
             appendSystemCard(card);
         } else if (type === 'extracting_variables') {
+            const execKey = makeExecKey(data.calc_id, data.variables || {});
+            if (execKey === State.pendingExecutionKey || execKey === State.lastCompletedExecutionKey) {
+                return;
+            }
+            // If another execution card is still pending, drop it to avoid stale duplicates.
+            removePendingExecutionCard();
             const varsArr = dictToArr(data.variables || {});
             const card = buildVariablesCard(data.calc_id, varsArr);
-            appendSystemCard(card);
+            State.pendingExecutionCardMsg = appendSystemCard(card);
+            State.pendingExecutionKey = execKey;
         } else if (type === 'calculation_complete') {
+            const resultKey = makeResultKey(data.calc_id, data.outputs || {});
+            if (resultKey === State.lastResultKey) {
+                removePendingExecutionCard();
+                return;
+            }
+            // This execution succeeded; keep the card and clear pending marker.
+            if (State.pendingExecutionKey) {
+                State.lastCompletedExecutionKey = State.pendingExecutionKey;
+            }
+            State.lastResultKey = resultKey;
+            State.pendingExecutionCardMsg = null;
+            State.pendingExecutionKey = null;
             const card = buildResultCard(data.calc_id, data.outputs, data.audit_trace);
             appendSystemCard(card);
         } else if (type === 'validation_error') {
+            // Drop the pre-exec variables card when backend rejected the call.
+            removePendingExecutionCard();
             const errs = data.errors || ["Unknown error"];
             const card = buildErrorCard(errs);
             appendSystemCard(card);
         } else if (type === 'assistant_message') {
             appendAssistantText(data.content);
         } else if (type === 'error') {
+            // Remove dangling execution card if the request aborted before result.
+            removePendingExecutionCard();
             appendErrorMessage(data.error);
         }
     }

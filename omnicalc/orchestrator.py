@@ -208,6 +208,11 @@ class OrchestratorAgent:
             logger.info("Using model override (stream): %s", request.model)
             self.llm.model = request.model
 
+        # These are currently shared on the orchestrator instance (not per-session).
+        # Clear them at the start of each stream to prevent stale result leakage.
+        self.last_mcp_calc_id = None
+        self.last_mcp_result = None
+
         session = self.get_or_create_session(request.session_id, request.locale)
 
         # Build system prompt
@@ -238,6 +243,7 @@ class OrchestratorAgent:
         current_message_chunks: List[str] = []
         last_complete_message = ""
         saw_tool_activity = False
+        successful_execution_emitted = False
         
         async for event in self.llm.chat_v1_stream(
             user_input=user_content,
@@ -278,7 +284,6 @@ class OrchestratorAgent:
                 current_message_chunks = []
                 last_complete_message = ""
                 # LM Studio emits full arguments as a dict once parsed
-                tool_name = event.get("tool", "")
                 args = event.get("arguments", {})
                 if isinstance(args, str):
                     try:
@@ -288,39 +293,10 @@ class OrchestratorAgent:
                         
                 tool_call_count += 1
                 if tool_call_count >= 5:
+                    if successful_execution_emitted:
+                        break
                     yield StreamEvent(type=EventType.ERROR, data={"error": "Failed: Maximum of 5 tool calls reached without final user response."})
                     break
-                        
-                if tool_name == "execute_calc":
-                    calc_id = args.get("calc_id")
-                    variables = args.get("variables", {})
-                    
-                    try:
-                        from omnicalc.calculators import CALCULATORS
-                        if calc_id in CALCULATORS:
-                            calc_def = CALCULATORS[calc_id]["def"]
-                            unit_map = {inp.id: inp.canonical_unit for inp in calc_def.inputs}
-                            label_map = {inp.id: inp.label for inp in calc_def.inputs}
-                            augmented_vars = {}
-                            for k, v in variables.items():
-                                if isinstance(v, dict):
-                                    v_copy = dict(v)
-                                    v_copy["label"] = label_map.get(k, k)
-                                    augmented_vars[k] = v_copy
-                                else:
-                                    augmented_vars[k] = {"value": v, "unit": unit_map.get(k, ""), "label": label_map.get(k, k)}
-                            variables = augmented_vars
-                    except Exception:
-                        pass
-                        
-                    yield StreamEvent(
-                        type=EventType.EXTRACTING_VARIABLES,
-                        data={
-                            "calc_id": calc_id,
-                            "variables": variables,
-                        }
-                    )
-                    await asyncio.sleep(0.5)
                     
             elif event_type == "tool_call.success" or event_type == "tool_call.error":
                 saw_tool_activity = True
@@ -334,10 +310,30 @@ class OrchestratorAgent:
                     break
 
                 # Once the MCP tool finishes executing, flush the internal state to the UI
-                if self.last_mcp_result is not None:
+                event_tool = event.get("tool", "")
+                if self.last_mcp_result is not None and event_tool == "execute_calc":
                     res = self.last_mcp_result
-                    await asyncio.sleep(0.5) # Give the UI time to show EXTRACTING_VARIABLES
+                    args = event.get("arguments", {})
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except json.JSONDecodeError:
+                            args = {}
+
                     if hasattr(res, "success") and res.success:
+                        # Show "Executing" only when backend accepted execute_calc.
+                        if event_tool == "execute_calc":
+                            calc_id = args.get("calc_id") or self.last_mcp_calc_id
+                            variables = self._augment_variables_for_ui(calc_id, args.get("variables", {}))
+                            yield StreamEvent(
+                                type=EventType.EXTRACTING_VARIABLES,
+                                data={
+                                    "calc_id": calc_id,
+                                    "variables": variables,
+                                }
+                            )
+                            await asyncio.sleep(0.5)
+
                         yield StreamEvent(
                             type=EventType.CALCULATION_COMPLETE,
                             data={
@@ -346,6 +342,10 @@ class OrchestratorAgent:
                                 "audit_trace": res.audit_trace,
                             },
                         )
+                        successful_execution_emitted = True
+                        self.last_mcp_result = None
+                        self.last_mcp_calc_id = None
+                        break
                     elif hasattr(res, "errors"):
                         yield StreamEvent(
                             type=EventType.VALIDATION_ERROR,
@@ -378,6 +378,28 @@ class OrchestratorAgent:
             else:
                 variables.append(ExtractedVariable(key=key, value=value))
         return variables
+
+    @staticmethod
+    def _augment_variables_for_ui(calc_id: Optional[str], variables: Dict[str, Any]) -> Dict[str, Any]:
+        """Attach labels/units for frontend variable cards when calculator schema is known."""
+        try:
+            from omnicalc.calculators import CALCULATORS
+            if calc_id in CALCULATORS:
+                calc_def = CALCULATORS[calc_id]["def"]
+                unit_map = {inp.id: inp.canonical_unit for inp in calc_def.inputs}
+                label_map = {inp.id: inp.label for inp in calc_def.inputs}
+                augmented_vars: Dict[str, Any] = {}
+                for k, v in (variables or {}).items():
+                    if isinstance(v, dict):
+                        v_copy = dict(v)
+                        v_copy["label"] = label_map.get(k, k)
+                        augmented_vars[k] = v_copy
+                    else:
+                        augmented_vars[k] = {"value": v, "unit": unit_map.get(k, ""), "label": label_map.get(k, k)}
+                return augmented_vars
+        except Exception:
+            pass
+        return variables or {}
 
     @staticmethod
     def _attachment_to_content(attachment: InputAttachment) -> Optional[Dict[str, Any]]:
