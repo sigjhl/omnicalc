@@ -129,3 +129,6 @@ dmypy.json
 *.swp
 *.swo
 *~
+
+# local notes
+fix_mlx_audio_ctc_bug.md

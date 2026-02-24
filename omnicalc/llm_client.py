@@ -12,7 +12,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:1234/v1"
-DEFAULT_MODEL = "medgemma"  # Will use whatever is loaded in LM Studio
+DEFAULT_MODEL = "sigjhl/medgemma-1.5-4b-it-MedCalcCaller"
 
 
 @dataclass
@@ -105,6 +105,7 @@ class LMStudioClient:
         self,
         messages: List[Message],
         tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[Dict[str, Any]] = None,
     ) -> CompletionResult:
         """Call LM Studio /chat/completions."""
         payload: Dict[str, Any] = {
@@ -113,14 +114,61 @@ class LMStudioClient:
         }
         if tools:
             payload["tools"] = tools
+            payload["parallel_tool_calls"] = False
+        if tool_choice:
+            payload["tool_choice"] = tool_choice
 
         logger.debug(f"Chat completion request: {json.dumps(payload, indent=2)}")
 
-        response = await self._client.post(
-            f"{self.base_url}/chat/completions",
-            json=payload,
-        )
-        response.raise_for_status()
+        attempts: List[Dict[str, Any]] = [dict(payload)]
+        if "parallel_tool_calls" in payload:
+            p = dict(payload)
+            p.pop("parallel_tool_calls", None)
+            attempts.append(p)
+        if "tool_choice" in payload:
+            p = dict(payload)
+            p.pop("tool_choice", None)
+            attempts.append(p)
+        if "parallel_tool_calls" in payload and "tool_choice" in payload:
+            p = dict(payload)
+            p.pop("parallel_tool_calls", None)
+            p.pop("tool_choice", None)
+            attempts.append(p)
+
+        unique_attempts: List[Dict[str, Any]] = []
+        seen_payloads: set[str] = set()
+        for attempt in attempts:
+            key = json.dumps(attempt, sort_keys=True, default=str)
+            if key in seen_payloads:
+                continue
+            seen_payloads.add(key)
+            unique_attempts.append(attempt)
+
+        response = None
+        last_error: Optional[httpx.HTTPStatusError] = None
+        for index, attempt_payload in enumerate(unique_attempts):
+            response = await self._client.post(
+                f"{self.base_url}/chat/completions",
+                json=attempt_payload,
+            )
+            try:
+                response.raise_for_status()
+                break
+            except httpx.HTTPStatusError as exc:
+                last_error = exc
+                is_last = index == len(unique_attempts) - 1
+                if response.status_code in (400, 422) and not is_last:
+                    snippet = (response.text or "").strip().replace("\n", " ")
+                    if len(snippet) > 240:
+                        snippet = snippet[:240] + "..."
+                    logger.warning("LM Studio rejected chat payload (%s); retrying simpler payload", snippet or response.status_code)
+                    continue
+                raise
+
+        if response is None:
+            if last_error:
+                raise last_error
+            raise RuntimeError("No LM Studio response received")
         data = response.json()
 
         logger.debug(f"Chat completion response: {json.dumps(data, indent=2)}")
@@ -241,7 +289,8 @@ class LMStudioClient:
             finish_reason=finish_reason,
             usage=data.get("usage"),
         )
-        result.tool_calls = self._parse_tool_calls_from_message(message)
+        parsed_calls = self._parse_tool_calls_from_message(message)
+        result.tool_calls = self._normalize_tool_calls(parsed_calls)
         return result
 
     def _parse_responses_payload(self, data: Dict[str, Any]) -> CompletionResult:
@@ -270,10 +319,61 @@ class LMStudioClient:
 
         return CompletionResult(
             content=content,
-            tool_calls=tool_calls,
+            tool_calls=self._normalize_tool_calls(tool_calls),
             finish_reason=data.get("status", "stop"),
             usage=data.get("usage"),
         )
+
+    def _normalize_tool_calls(self, tool_calls: List[ToolCall]) -> List[ToolCall]:
+        """
+        De-duplicate pathological tool-call bursts from small models.
+
+        Current runtime is single-calculator per request, so keep at most one
+        execute_calc call per completion payload.
+        """
+        if not tool_calls:
+            return []
+
+        normalized: List[ToolCall] = []
+        seen_calc_info: set[str] = set()
+        seen_execute_signature: set[str] = set()
+        kept_execute = False
+
+        for call in tool_calls:
+            if call.name == "calc_info":
+                calc_id = str(call.arguments.get("calc_id", ""))
+                if calc_id and calc_id in seen_calc_info:
+                    continue
+                if calc_id:
+                    seen_calc_info.add(calc_id)
+                normalized.append(call)
+                continue
+
+            if call.name == "execute_calc":
+                if kept_execute:
+                    continue
+                calc_id = call.arguments.get("calc_id")
+                variables = call.arguments.get("variables", {})
+                try:
+                    signature = f"{calc_id}|{json.dumps(variables, sort_keys=True, default=str)}"
+                except Exception:
+                    signature = f"{calc_id}|{str(variables)}"
+                if signature in seen_execute_signature:
+                    continue
+                seen_execute_signature.add(signature)
+                normalized.append(call)
+                kept_execute = True
+                continue
+
+            normalized.append(call)
+
+        if len(normalized) != len(tool_calls):
+            logger.warning(
+                "Normalized tool calls from %s to %s",
+                len(tool_calls),
+                len(normalized),
+            )
+        return normalized
 
     def _extract_text_from_content(self, content: Any) -> str:
         if content is None:

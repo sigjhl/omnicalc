@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration from environment
 LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "http://localhost:1234/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "openai/gpt-oss-20b")
+MODEL_NAME = os.environ.get("MODEL_NAME", "sigjhl/medgemma-1.5-4b-it-MedCalcCaller")
 
 # Paths
 HERE = Path(__file__).resolve()
@@ -53,10 +53,23 @@ async def execute_calc(calc_id: str, variables: dict) -> str:
     if not _orchestrator:
         return "Error: Orchestrator not initialized"
     import json
+    try:
+        signature = f"{calc_id}|{json.dumps(variables, sort_keys=True, default=str)}"
+    except Exception:
+        signature = f"{calc_id}|{str(variables)}"
+
+    if (
+        _orchestrator.last_mcp_exec_signature == signature
+        and _orchestrator.last_mcp_result is not None
+    ):
+        _orchestrator.last_mcp_calc_id = calc_id
+        return json.dumps(_orchestrator.last_mcp_result.model_dump())
+
     res = await _orchestrator.tools.execute_calc(calc_id=calc_id, variables=variables)
-    
+
     _orchestrator.last_mcp_calc_id = calc_id
     _orchestrator.last_mcp_result = res
+    _orchestrator.last_mcp_exec_signature = signature
     return json.dumps(res.model_dump())
 
 @mcp_server.tool()
@@ -1215,7 +1228,7 @@ async def websocket_endpoint(websocket: WebSocket):
             pass
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8001):
+def run_server(host: str = "0.0.0.0", port: int = 8002):
     """Run the AgentiCalc server."""
     import uvicorn
     uvicorn.run(app, host=host, port=port)

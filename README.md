@@ -23,7 +23,7 @@ Open `http://localhost:8002`.
 ## Configuration
 
 - `LM_STUDIO_URL` (default: `http://localhost:1234/v1`)
-- `MODEL_NAME` (default: `openai/gpt-oss-20b`)
+- `MODEL_NAME` (default: `sigjhl/medgemma-1.5-4b-it-MedCalcCaller`)
 - `MEDASR_BACKEND` (default: `mlx`)
 - `MEDASR_MODEL_PATH` (default: `google/medasr`)
 
