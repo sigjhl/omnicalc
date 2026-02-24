@@ -34,6 +34,15 @@ from .tools import TOOL_DEFINITIONS, ToolHandler
 logger = logging.getLogger(__name__)
 
 
+def _clean_assistant_chunk(text: str) -> str:
+    """Remove control tags emitted by some LM Studio model variants."""
+    if not text:
+        return ""
+    text = text.replace("<|channel|>final<|message|>", "")
+    text = text.replace("<|channel|>thought<|message|>", "")
+    return text
+
+
 @dataclass
 class Session:
     """Conversation session state."""
@@ -224,9 +233,11 @@ class OrchestratorAgent:
         ]
 
         full_content = ""
-        tool_call_data = {}
         tool_call_count = 0
         consecutive_errors = 0
+        current_message_chunks: List[str] = []
+        last_complete_message = ""
+        saw_tool_activity = False
         
         async for event in self.llm.chat_v1_stream(
             user_input=user_content,
@@ -239,24 +250,33 @@ class OrchestratorAgent:
             if event_type == "response_id":
                 session.previous_response_id = event.get("response_id")
                 
+            elif event_type == "message.start":
+                current_message_chunks = []
+
             elif event_type == "message.delta":
-                delta_content = event.get("content", "")
-                
-                # Strip strict XML-style tags emitted by gpt-oss models
-                delta_content = delta_content.replace("<|channel|>final<|message|>", "")
-                delta_content = delta_content.replace("<|channel|>thought<|message|>", "")
-                
+                delta_content = _clean_assistant_chunk(event.get("content", ""))
                 full_content += delta_content
                 if delta_content:
-                    yield StreamEvent(type=EventType.ASSISTANT_MESSAGE, data={"content": delta_content})
+                    current_message_chunks.append(delta_content)
+
+            elif event_type == "message.end":
+                candidate = "".join(current_message_chunks).strip()
+                if candidate:
+                    last_complete_message = candidate
                 
             elif event_type == "tool_call.name":
+                saw_tool_activity = True
+                current_message_chunks = []
+                last_complete_message = ""
                 tool_name = event.get("tool_name", "")
                 if tool_name == "calc_info":
                     yield StreamEvent(type=EventType.CALCULATOR_SELECTED, data={"calc_id": "calculator schema"})
                     await asyncio.sleep(0.5)
                     
             elif event_type == "tool_call.arguments":
+                saw_tool_activity = True
+                current_message_chunks = []
+                last_complete_message = ""
                 # LM Studio emits full arguments as a dict once parsed
                 tool_name = event.get("tool", "")
                 args = event.get("arguments", {})
@@ -303,6 +323,7 @@ class OrchestratorAgent:
                     await asyncio.sleep(0.5)
                     
             elif event_type == "tool_call.success" or event_type == "tool_call.error":
+                saw_tool_activity = True
                 if event_type == "tool_call.error":
                     consecutive_errors += 1
                 else:
@@ -332,6 +353,12 @@ class OrchestratorAgent:
                         )
                     self.last_mcp_result = None
                     self.last_mcp_calc_id = None
+
+        final_message = last_complete_message
+        if not final_message and not saw_tool_activity:
+            final_message = _clean_assistant_chunk(full_content).strip()
+        if final_message:
+            yield StreamEvent(type=EventType.ASSISTANT_MESSAGE, data={"content": final_message})
 
         return
 
