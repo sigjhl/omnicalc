@@ -15,7 +15,7 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 # Configuration from environment
 LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "http://localhost:1234/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "sigjhl/medgemma-1.5-4b-it-MedCalcCaller")
+MCP_URL_OVERRIDE = os.environ.get("OMNICALC_MCP_URL") or os.environ.get("MCP_URL")
+DEFAULT_LOCAL_MCP_URL = os.environ.get("OMNICALC_LOCAL_MCP_URL", "http://127.0.0.1:8002/mcp/sse")
 
 # Paths
 HERE = Path(__file__).resolve()
@@ -43,6 +45,15 @@ _asr_loaded: bool = False
 _asr_transcribe_fn = None
 _asr_backend_info = None
 _asr_model_path: Optional[str] = None
+
+
+def _resolve_mcp_url(request: OrchestratorRequest) -> str:
+    """Resolve MCP URL for LM Studio tool integration."""
+    if request.mcp_url:
+        return request.mcp_url
+    if MCP_URL_OVERRIDE:
+        return MCP_URL_OVERRIDE
+    return DEFAULT_LOCAL_MCP_URL
 
 from mcp.server.fastmcp import FastMCP
 mcp_server = FastMCP("OmniCalc")
@@ -446,7 +457,7 @@ async def load_medasr():
 
 
 @app.post("/orchestrate", response_model=OrchestratorResponse)
-async def orchestrate(req: Request, request: OrchestratorRequest):
+async def orchestrate(request: OrchestratorRequest):
     """
     Main endpoint for clinical calculation.
 
@@ -456,8 +467,7 @@ async def orchestrate(req: Request, request: OrchestratorRequest):
     if not _orchestrator:
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
 
-    if not request.mcp_url:
-        request.mcp_url = f"http://{req.headers.get('host', 'localhost:8002')}/mcp/sse"
+    request.mcp_url = _resolve_mcp_url(request)
 
     try:
         response = await _orchestrator.process(request)
@@ -468,7 +478,7 @@ async def orchestrate(req: Request, request: OrchestratorRequest):
 
 
 @app.post("/orchestrate/stream")
-async def orchestrate_stream(req: Request, request: OrchestratorRequest):
+async def orchestrate_stream(request: OrchestratorRequest):
     """
     Streaming endpoint for clinical calculation.
 
@@ -477,8 +487,7 @@ async def orchestrate_stream(req: Request, request: OrchestratorRequest):
     if not _orchestrator:
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
 
-    if not request.mcp_url:
-        request.mcp_url = f"http://{req.headers.get('host', 'localhost:8002')}/mcp/sse"
+    request.mcp_url = _resolve_mcp_url(request)
 
     async def event_generator():
         try:
