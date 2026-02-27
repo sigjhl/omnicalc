@@ -375,16 +375,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (attachment) {
             contentHtml += `<div style="font-size:0.8rem; margin-bottom:4px; opacity:0.8;">&#128206; ${attachment.name}</div>`;
         }
+        const audioTranscript = attachment?.kind === 'audio'
+            ? String(attachment?.transcript || '').trim()
+            : '';
+        const transcriptHtml = audioTranscript
+            ? `<div style="padding-top: 6px; line-height: 1.45; opacity: 0.86;"><em>[Transcript: "${audioTranscript.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br/>')}"]</em></div>`
+            : '';
+
         if (text) {
             const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             contentHtml += `<div style="padding-top: 8px; line-height: 1.5;">${safeText.replace(/\\n/g, '<br/>')}</div>`;
+            if (transcriptHtml) {
+                contentHtml += transcriptHtml;
+            }
         } else {
-            const attachmentLabel = attachment?.kind === 'audio'
+            if (audioTranscript) {
+                contentHtml += transcriptHtml;
+            } else {
+                const attachmentLabel = attachment?.kind === 'audio'
                 ? '[Audio attached]'
                 : attachment?.kind === 'text'
                     ? '[Text attached]'
                     : '[Image attached]';
-            contentHtml += `<div style="padding-top: 8px;"><em>${attachmentLabel}</em></div>`;
+                contentHtml += `<div style="padding-top: 8px;"><em>${attachmentLabel}</em></div>`;
+            }
         }
 
         const encodedText = encodeURIComponent(text || '');
