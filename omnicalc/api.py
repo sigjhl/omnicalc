@@ -8,7 +8,7 @@ import logging
 import os
 import sys
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import base64
 from collections import deque
@@ -33,6 +33,18 @@ LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "http://localhost:1234/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "sigjhl/medgemma-1.5-4b-it-MedCalcCaller")
 MCP_URL_OVERRIDE = os.environ.get("OMNICALC_MCP_URL") or os.environ.get("MCP_URL")
 DEFAULT_LOCAL_MCP_URL = os.environ.get("OMNICALC_LOCAL_MCP_URL", "http://127.0.0.1:8002/mcp/sse")
+VALID_API_MODES = {"chat_completions", "responses", "chat_v1"}
+
+
+def _normalize_api_mode(mode: Optional[str], default: str) -> str:
+    candidate = (mode or "").strip()
+    if candidate in VALID_API_MODES:
+        return candidate
+    return default
+
+
+ORCHESTRATE_API_MODE = _normalize_api_mode(os.environ.get("OMNICALC_ORCHESTRATE_API_MODE"), "responses")
+STREAM_API_MODE = _normalize_api_mode(os.environ.get("OMNICALC_STREAM_API_MODE"), "responses")
 
 # Paths
 HERE = Path(__file__).resolve()
@@ -468,6 +480,8 @@ async def orchestrate(request: OrchestratorRequest):
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
 
     request.mcp_url = _resolve_mcp_url(request)
+    if request.api_mode is None:
+        request.api_mode = ORCHESTRATE_API_MODE
 
     try:
         response = await _orchestrator.process(request)
@@ -488,6 +502,8 @@ async def orchestrate_stream(request: OrchestratorRequest):
         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
 
     request.mcp_url = _resolve_mcp_url(request)
+    if request.api_mode is None:
+        request.api_mode = STREAM_API_MODE
 
     async def event_generator():
         try:
@@ -563,6 +579,7 @@ class TextInputRequest(BaseModel):
     text: str
     calculator: Optional[str] = None
     model: Optional[str] = None
+    api_mode: Optional[Literal["chat_completions", "responses", "chat_v1"]] = None
 
 
 @app.post("/calculate")
@@ -580,6 +597,7 @@ async def quick_calculate(request: TextInputRequest):
             input=request.text,
             calculator_hint=request.calculator,
             model=request.model,
+            api_mode=request.api_mode or ORCHESTRATE_API_MODE,
         )
         response = await _orchestrator.process(orch_request)
         return response
@@ -1211,6 +1229,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     input=text or "",
                     session_id=session_id,
                     calculator_hint=calculator,
+                    api_mode=data.get("api_mode") or STREAM_API_MODE,
                 )
 
                 async for event in _orchestrator.process_stream(orch_req):

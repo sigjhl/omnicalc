@@ -3,6 +3,19 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Keep this explicit so switching to direct-audio LLM input is a one-line change later.
+    const AUDIO_ATTACHMENT_MODE = 'medasr_transcript'; // 'medasr_transcript' | 'raw_audio'
+    const FORWARD_RAW_AUDIO_WITH_TRANSCRIPT = false;
+
+    const ATTACHMENT_LIMITS = {
+        text: 1 * 1024 * 1024,
+        image: 15 * 1024 * 1024,
+        audio: 25 * 1024 * 1024,
+    };
+    const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.csv', '.tsv', '.json', '.yaml', '.yml', '.log']);
+    const AUDIO_EXTENSIONS = new Set(['.wav', '.mp3', '.m4a', '.aac', '.ogg', '.oga', '.webm', '.flac', '.opus', '.mp4', '.mpeg', '.mpga']);
+    const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.heic', '.heif']);
+    const TEXT_MIME_TYPES = new Set(['application/json', 'application/xml', 'application/x-yaml']);
 
     // --- DOM Elements ---
     const DOM = {
@@ -11,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textInput: document.getElementById('textInput'),
         recordBtn: document.getElementById('recordBtn'),
         captureBtn: document.getElementById('captureBtn'),
+        screenshotBtn: document.getElementById('screenshotBtn'),
         sendBtn: document.getElementById('sendBtn'),
         newSessionBtn: document.getElementById('newSessionBtn'),
 
@@ -31,24 +45,35 @@ document.addEventListener('DOMContentLoaded', () => {
         hotkeySelect: document.getElementById('hotkeySelect'),
         asrHotkeyInput: document.getElementById('asrHotkeyInput'),
         captureHotkeyInput: document.getElementById('captureHotkeyInput'),
+        captureHotkeyLabel: document.getElementById('captureHotkeyLabel'),
         clearAsrHotkeyBtn: document.getElementById('clearAsrHotkeyBtn'),
         clearCaptureHotkeyBtn: document.getElementById('clearCaptureHotkeyBtn'),
 
-        captureOverlay: document.getElementById('captureOverlay'),
-        captureCanvas: document.getElementById('captureCanvas')
+        attachPickerModal: document.getElementById('attachPickerModal'),
+        pickFileBtn: document.getElementById('pickFileBtn'),
+        pickImageBtn: document.getElementById('pickImageBtn'),
+        pickCameraBtn: document.getElementById('pickCameraBtn'),
+        cancelAttachPickerBtn: document.getElementById('cancelAttachPickerBtn'),
+        attachFileInput: document.getElementById('attachFileInput'),
+        attachImageInput: document.getElementById('attachImageInput'),
+        attachCameraInput: document.getElementById('attachCameraInput'),
+        dragDropOverlay: document.getElementById('dragDropOverlay')
     };
 
     // --- Application State ---
     const State = {
         sessionId: crypto.randomUUID(),
         isRecording: false,
-        attachment: null, // {data: base64, type: string}
+        attachment: null, // {name, kind, mime_type, data, transcript?}
+        isDesktop: detectIsDesktopBrowser(),
         medasr: {
             socket: null,
             audioCtx: null,
             processor: null,
-            mediaStream: null
+            mediaStream: null,
+            loaded: false,
         },
+        dragDropDepth: 0,
         isProcessing: false,
 
         // Chat state tracking to append chunks to the same bubble
@@ -70,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function init() {
         applyTheme(State.theme);
+        applyCaptureModeUI();
         setupEventListeners();
         await refreshModels();
         setStatus('ready', 'System Ready');
@@ -86,6 +112,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (DOM.captureHotkeyInput) DOM.captureHotkeyInput.value = State.captureHotkey;
         } catch (e) {
             console.error('Storage access error', e);
+        }
+    }
+
+    function detectIsDesktopBrowser() {
+        const ua = navigator.userAgent || '';
+        const isTouchMac = /Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+        const isMobile = isMobileUA || isTouchMac || (navigator.userAgentData && navigator.userAgentData.mobile);
+        return !isMobile;
+    }
+
+    function applyCaptureModeUI() {
+        if (DOM.captureBtn) {
+            DOM.captureBtn.title = State.isDesktop ? 'Add Attachment' : `Add Attachment (${State.captureHotkey})`;
+        }
+        if (DOM.screenshotBtn) {
+            DOM.screenshotBtn.title = `Capture Screen (${State.captureHotkey})`;
+            DOM.screenshotBtn.classList.toggle('hidden', !State.isDesktop);
+        }
+        if (DOM.captureHotkeyLabel) {
+            DOM.captureHotkeyLabel.textContent = State.isDesktop ? 'Screenshot Hotkey' : 'Attachment Picker Hotkey';
+        }
+        if (DOM.pickImageBtn) {
+            DOM.pickImageBtn.classList.toggle('hidden', State.isDesktop);
+        }
+        if (DOM.pickCameraBtn) {
+            DOM.pickCameraBtn.classList.toggle('hidden', State.isDesktop);
+        }
+        if (!State.isDesktop && DOM.dragDropOverlay) {
+            DOM.dragDropOverlay.classList.add('hidden');
         }
     }
 
@@ -205,7 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (State.attachment) {
-            payload.attachments = [State.attachment];
+            const preparedAttachments = buildRequestAttachments(State.attachment);
+            if (preparedAttachments.length) {
+                payload.attachments = preparedAttachments;
+            }
         }
 
         // Hide welcome message
@@ -320,7 +379,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             contentHtml += `<div style="padding-top: 8px; line-height: 1.5;">${safeText.replace(/\\n/g, '<br/>')}</div>`;
         } else {
-            contentHtml += `<div style="padding-top: 8px;"><em>[Image attached]</em></div>`;
+            const attachmentLabel = attachment?.kind === 'audio'
+                ? '[Audio attached]'
+                : attachment?.kind === 'text'
+                    ? '[Text attached]'
+                    : '[Image attached]';
+            contentHtml += `<div style="padding-top: 8px;"><em>${attachmentLabel}</em></div>`;
         }
 
         const encodedText = encodeURIComponent(text || '');
@@ -616,12 +680,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const varsArr = dictToArr(data.variables || {});
             const card = buildVariablesCard(data.calc_id, varsArr);
-            State.pendingExecutionCardMsg = setGeneratingStatusCard(card);
+            // Promote execution details to a persistent card (not a transient status card).
+            clearGeneratingStatusCard();
+            State.pendingExecutionCardMsg = appendSystemCard(card);
             State.pendingExecutionKey = execKey;
         } else if (type === 'calculation_complete') {
             const resultKey = makeResultKey(data.calc_id, data.outputs || {});
             if (resultKey === State.lastResultKey) {
-                removePendingExecutionCard();
+                clearGeneratingStatusCard();
                 return;
             }
             // This execution succeeded; keep the card and clear pending marker.
@@ -762,6 +828,771 @@ document.addEventListener('DOMContentLoaded', () => {
         appendErrorMessage(msg);
     }
 
+    function openAttachmentPicker() {
+        if (State.isProcessing) return;
+        if (!DOM.attachPickerModal) return;
+        DOM.attachPickerModal.classList.remove('hidden');
+    }
+
+    function closeAttachmentPicker() {
+        if (!DOM.attachPickerModal) return;
+        DOM.attachPickerModal.classList.add('hidden');
+    }
+
+    function triggerAttachmentInput(inputEl) {
+        closeAttachmentPicker();
+        if (!inputEl) return;
+        inputEl.click();
+    }
+
+    function hasFileDataTransfer(event) {
+        const dt = event && event.dataTransfer;
+        if (!dt) return false;
+        if (dt.items && dt.items.length) {
+            return Array.from(dt.items).some((item) => item && item.kind === 'file');
+        }
+        if (dt.types && dt.types.length) {
+            return Array.from(dt.types).includes('Files');
+        }
+        return false;
+    }
+
+    function showDragDropOverlay() {
+        if (!State.isDesktop || !DOM.dragDropOverlay) return;
+        DOM.dragDropOverlay.classList.remove('hidden');
+    }
+
+    function hideDragDropOverlay() {
+        if (!DOM.dragDropOverlay) return;
+        DOM.dragDropOverlay.classList.add('hidden');
+    }
+
+    function resetDragDropOverlay() {
+        State.dragDropDepth = 0;
+        hideDragDropOverlay();
+    }
+
+    function extensionForMimeType(mimeType) {
+        const mt = String(mimeType || '').toLowerCase();
+        if (mt === 'image/png') return '.png';
+        if (mt === 'image/jpeg') return '.jpg';
+        if (mt === 'image/webp') return '.webp';
+        if (mt === 'image/gif') return '.gif';
+        if (mt === 'audio/wav' || mt === 'audio/x-wav') return '.wav';
+        if (mt === 'audio/mpeg' || mt === 'audio/mp3') return '.mp3';
+        if (mt === 'audio/mp4' || mt === 'audio/m4a') return '.m4a';
+        if (mt === 'audio/ogg') return '.ogg';
+        if (mt === 'audio/webm') return '.webm';
+        if (mt.startsWith('text/')) return '.txt';
+        return '';
+    }
+
+    function normalizeClipboardFile(file, fallbackBaseName) {
+        if (!file) return null;
+        const originalName = String(file.name || '').trim();
+        if (originalName) return file;
+        const mimeType = String(file.type || 'application/octet-stream');
+        const ext = extensionForMimeType(mimeType);
+        const base = fallbackBaseName || 'ClipboardFile';
+        const fileName = `${base}${ext}`;
+        try {
+            return new File([file], fileName, { type: mimeType || undefined });
+        } catch (e) {
+            file.name = fileName;
+            return file;
+        }
+    }
+
+    function extractClipboardFiles(event) {
+        const dt = event && event.clipboardData;
+        if (!dt) return [];
+
+        const output = [];
+        const dtFiles = Array.from(dt.files || []);
+        dtFiles.forEach((file) => {
+            const normalized = normalizeClipboardFile(file, 'ClipboardFile');
+            if (normalized) output.push(normalized);
+        });
+        if (output.length) return output;
+
+        const items = Array.from(dt.items || []);
+        items.forEach((item, idx) => {
+            if (!item || item.kind !== 'file') return;
+            const rawFile = item.getAsFile();
+            if (!rawFile) return;
+            const normalized = normalizeClipboardFile(rawFile, `PastedFile${idx + 1}`);
+            if (normalized) output.push(normalized);
+        });
+        return output;
+    }
+
+    function isCaptureCancelError(err) {
+        const name = err && err.name ? String(err.name) : '';
+        return name === 'NotAllowedError' || name === 'AbortError' || name === 'NotFoundError';
+    }
+
+    function stopStreamTracks(stream) {
+        if (!stream) return;
+        const tracks = typeof stream.getTracks === 'function' ? stream.getTracks() : [];
+        tracks.forEach((track) => {
+            try { track.stop(); } catch (e) { }
+        });
+    }
+
+    function dataUrlToBase64(dataUrl) {
+        const parts = String(dataUrl || '').split(',');
+        return parts.length > 1 ? parts[1] : '';
+    }
+
+    async function captureDisplayFrameDataUrl() {
+        let stream = null;
+        try {
+            stream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: false
+            });
+        } catch (err) {
+            if (isCaptureCancelError(err)) {
+                return null;
+            }
+            throw err;
+        }
+
+        try {
+            const track = stream.getVideoTracks && stream.getVideoTracks()[0];
+            if (!track) {
+                throw new Error('No video track from display capture');
+            }
+
+            // Preferred path: grab a clean frame directly from the track.
+            if (typeof window.ImageCapture === 'function') {
+                try {
+                    const imageCapture = new ImageCapture(track);
+                    const bitmap = await imageCapture.grabFrame();
+                    const canvas = document.createElement('canvas');
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) throw new Error('Canvas context unavailable');
+                    ctx.drawImage(bitmap, 0, 0);
+                    if (typeof bitmap.close === 'function') {
+                        bitmap.close();
+                    }
+                    return canvas.toDataURL('image/png');
+                } catch (e) {
+                    // Fallback to video-frame path below.
+                }
+            }
+
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.muted = true;
+            video.playsInline = true;
+
+            await new Promise((resolve, reject) => {
+                const onLoaded = () => {
+                    cleanup();
+                    resolve();
+                };
+                const onError = (event) => {
+                    cleanup();
+                    reject(event || new Error('Failed to load display video'));
+                };
+                const cleanup = () => {
+                    video.removeEventListener('loadedmetadata', onLoaded);
+                    video.removeEventListener('error', onError);
+                };
+                video.addEventListener('loadedmetadata', onLoaded);
+                video.addEventListener('error', onError);
+            });
+
+            await video.play();
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            const width = video.videoWidth || 0;
+            const height = video.videoHeight || 0;
+            if (width <= 0 || height <= 0) {
+                throw new Error('Captured frame has invalid dimensions');
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Canvas context unavailable');
+            ctx.drawImage(video, 0, 0, width, height);
+            return canvas.toDataURL('image/png');
+        } finally {
+            stopStreamTracks(stream);
+        }
+    }
+
+    async function cropImageDataUrl(dataUrl) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const viewportW = Math.max(360, window.innerWidth || document.documentElement.clientWidth || 0);
+                const viewportH = Math.max(280, window.innerHeight || document.documentElement.clientHeight || 0);
+                const panelW = Math.max(320, Math.min(Math.floor(viewportW * 0.96), 1120));
+                const maxW = Math.max(280, panelW - 32);
+                const maxH = Math.max(200, Math.floor(viewportH * 0.62));
+                const scale = Math.min(1, maxW / img.width, maxH / img.height);
+                const drawW = Math.max(1, Math.floor(img.width * scale));
+                const drawH = Math.max(1, Math.floor(img.height * scale));
+                const invScaleX = img.width / drawW;
+                const invScaleY = img.height / drawH;
+
+                const backdrop = document.createElement('div');
+                backdrop.style.position = 'fixed';
+                backdrop.style.inset = '0';
+                backdrop.style.background = 'rgba(0,0,0,0.78)';
+                backdrop.style.display = 'flex';
+                backdrop.style.alignItems = 'center';
+                backdrop.style.justifyContent = 'center';
+                backdrop.style.zIndex = '2000';
+
+                const panel = document.createElement('div');
+                panel.style.width = `${panelW}px`;
+                panel.style.maxWidth = '96vw';
+                panel.style.maxHeight = '94vh';
+                panel.style.background = 'var(--bg-surface)';
+                panel.style.border = '1px solid var(--border-color)';
+                panel.style.borderRadius = '16px';
+                panel.style.padding = '12px';
+                panel.style.display = 'flex';
+                panel.style.flexDirection = 'column';
+                panel.style.gap = '10px';
+                panel.style.overflow = 'hidden';
+
+                const title = document.createElement('div');
+                title.textContent = 'Drag to crop, then attach';
+                title.style.fontSize = '0.92rem';
+                title.style.color = 'var(--text-secondary)';
+
+                const canvasWrap = document.createElement('div');
+                canvasWrap.style.display = 'flex';
+                canvasWrap.style.justifyContent = 'center';
+                canvasWrap.style.overflow = 'auto';
+                canvasWrap.style.maxWidth = '100%';
+                canvasWrap.style.maxHeight = 'calc(94vh - 120px)';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = drawW;
+                canvas.height = drawH;
+                canvas.style.width = `${drawW}px`;
+                canvas.style.height = `${drawH}px`;
+                canvas.style.maxWidth = '100%';
+                canvas.style.maxHeight = '100%';
+                canvas.style.cursor = 'crosshair';
+                canvas.style.border = '1px solid var(--border-color)';
+                canvas.style.borderRadius = '10px';
+                canvas.style.background = '#000';
+
+                const controls = document.createElement('div');
+                controls.style.display = 'flex';
+                controls.style.justifyContent = 'flex-end';
+                controls.style.gap = '8px';
+
+                const fullBtn = document.createElement('button');
+                fullBtn.type = 'button';
+                fullBtn.textContent = 'Use Full';
+                fullBtn.style.border = '1px solid var(--border-color)';
+                fullBtn.style.background = 'var(--bg-panel)';
+                fullBtn.style.color = 'var(--text-primary)';
+                fullBtn.style.borderRadius = '10px';
+                fullBtn.style.padding = '8px 12px';
+                fullBtn.style.cursor = 'pointer';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.style.border = '1px solid var(--border-color)';
+                cancelBtn.style.background = 'var(--bg-panel)';
+                cancelBtn.style.color = 'var(--text-primary)';
+                cancelBtn.style.borderRadius = '10px';
+                cancelBtn.style.padding = '8px 12px';
+                cancelBtn.style.cursor = 'pointer';
+
+                const attachBtn = document.createElement('button');
+                attachBtn.type = 'button';
+                attachBtn.textContent = 'Attach';
+                attachBtn.style.border = 'none';
+                attachBtn.style.background = 'var(--accent-primary)';
+                attachBtn.style.color = '#fff';
+                attachBtn.style.borderRadius = '10px';
+                attachBtn.style.padding = '8px 14px';
+                attachBtn.style.fontWeight = '600';
+                attachBtn.style.cursor = 'pointer';
+
+                controls.appendChild(fullBtn);
+                controls.appendChild(cancelBtn);
+                controls.appendChild(attachBtn);
+                canvasWrap.appendChild(canvas);
+                panel.appendChild(title);
+                panel.appendChild(canvasWrap);
+                panel.appendChild(controls);
+                backdrop.appendChild(panel);
+                document.body.appendChild(backdrop);
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    cleanup();
+                    resolve(null);
+                    return;
+                }
+
+                const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+                const normalizeRect = (x0, y0, x1, y1) => {
+                    const nx0 = clamp(Math.min(x0, x1), 0, drawW);
+                    const ny0 = clamp(Math.min(y0, y1), 0, drawH);
+                    const nx1 = clamp(Math.max(x0, x1), 0, drawW);
+                    const ny1 = clamp(Math.max(y0, y1), 0, drawH);
+                    return { x: nx0, y: ny0, w: nx1 - nx0, h: ny1 - ny0 };
+                };
+                const toCanvasPoint = (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
+                    const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+                    return {
+                        x: clamp(x, 0, canvas.width),
+                        y: clamp(y, 0, canvas.height),
+                    };
+                };
+
+                let selection = { x: 0, y: 0, w: drawW, h: drawH };
+                let dragging = false;
+                let startPoint = null;
+                let onKeyDown = null;
+
+                const drawScene = () => {
+                    ctx.clearRect(0, 0, drawW, drawH);
+                    ctx.drawImage(img, 0, 0, drawW, drawH);
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+                    ctx.fillRect(0, 0, drawW, drawH);
+                    // Repaint the selected area from the scaled image (not raw image coords),
+                    // so the viewport preview matches what the user expects.
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(selection.x, selection.y, selection.w, selection.h);
+                    ctx.clip();
+                    ctx.drawImage(img, 0, 0, drawW, drawH);
+                    ctx.restore();
+
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(selection.x, selection.y, selection.w, selection.h);
+                };
+
+                const onPointerDown = (event) => {
+                    event.preventDefault();
+                    startPoint = toCanvasPoint(event);
+                    dragging = true;
+                    selection = { x: startPoint.x, y: startPoint.y, w: 0, h: 0 };
+                    drawScene();
+                };
+
+                const onPointerMove = (event) => {
+                    if (!dragging || !startPoint) return;
+                    const point = toCanvasPoint(event);
+                    selection = normalizeRect(startPoint.x, startPoint.y, point.x, point.y);
+                    drawScene();
+                };
+
+                const onPointerUp = () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    if (selection.w < 4 || selection.h < 4) {
+                        selection = { x: 0, y: 0, w: drawW, h: drawH };
+                    }
+                    drawScene();
+                };
+
+                const cleanup = () => {
+                    canvas.removeEventListener('pointerdown', onPointerDown);
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerUp);
+                    if (onKeyDown) {
+                        window.removeEventListener('keydown', onKeyDown);
+                    }
+                    if (backdrop.parentNode) {
+                        backdrop.parentNode.removeChild(backdrop);
+                    }
+                };
+
+                const finishWithSelection = () => {
+                    const sel = (selection.w < 4 || selection.h < 4)
+                        ? { x: 0, y: 0, w: drawW, h: drawH }
+                        : selection;
+
+                    const sx = Math.max(0, Math.floor(sel.x * invScaleX));
+                    const sy = Math.max(0, Math.floor(sel.y * invScaleY));
+                    const sw = Math.max(1, Math.floor(sel.w * invScaleX));
+                    const sh = Math.max(1, Math.floor(sel.h * invScaleY));
+
+                    const cropCanvas = document.createElement('canvas');
+                    cropCanvas.width = sw;
+                    cropCanvas.height = sh;
+                    const cropCtx = cropCanvas.getContext('2d');
+                    if (!cropCtx) {
+                        cleanup();
+                        resolve(null);
+                        return;
+                    }
+                    cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+                    const out = cropCanvas.toDataURL('image/png');
+                    cleanup();
+                    resolve(out);
+                };
+
+                onKeyDown = (event) => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cleanup();
+                        resolve(null);
+                    } else if (event.key === 'Enter') {
+                        event.preventDefault();
+                        finishWithSelection();
+                    }
+                };
+
+                canvas.addEventListener('pointerdown', onPointerDown);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('keydown', onKeyDown);
+
+                fullBtn.addEventListener('click', () => {
+                    selection = { x: 0, y: 0, w: drawW, h: drawH };
+                    drawScene();
+                });
+                cancelBtn.addEventListener('click', () => {
+                    cleanup();
+                    resolve(null);
+                });
+                attachBtn.addEventListener('click', finishWithSelection);
+                backdrop.addEventListener('click', (event) => {
+                    if (event.target === backdrop) {
+                        cleanup();
+                        resolve(null);
+                    }
+                });
+
+                drawScene();
+                attachBtn.focus();
+            };
+
+            img.onerror = () => resolve(null);
+            img.src = dataUrl;
+        });
+    }
+
+    async function fallbackServerSideScreenCapture() {
+        const data = await apiRequest('/capture/screen', { method: 'POST' });
+        if (data && data.status === 'success' && data.attachment) {
+            return data.attachment;
+        }
+        return null;
+    }
+
+    async function startScreenCapture() {
+        if (State.isProcessing) return;
+        try {
+            const supportsDisplayCapture = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+
+            if (supportsDisplayCapture) {
+                setStatus('processing', 'Choose a screen/window to capture...');
+                const screenDataUrl = await captureDisplayFrameDataUrl();
+                if (!screenDataUrl) {
+                    setStatus('ready', 'Capture cancelled');
+                    setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+                    return;
+                }
+
+                setStatus('processing', 'Adjust crop and attach...');
+                const croppedDataUrl = await cropImageDataUrl(screenDataUrl);
+                if (!croppedDataUrl) {
+                    setStatus('ready', 'Capture cancelled');
+                    setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+                    return;
+                }
+
+                const base64 = dataUrlToBase64(croppedDataUrl);
+                if (!base64) {
+                    throw new Error('Failed to encode cropped screenshot');
+                }
+                State.attachment = {
+                    name: 'Screenshot.png',
+                    kind: 'image',
+                    mime_type: 'image/png',
+                    data: base64,
+                };
+            } else {
+                setStatus('processing', 'Waiting for screen capture selection...');
+                const fallbackAttachment = await fallbackServerSideScreenCapture();
+                if (!fallbackAttachment) {
+                    setStatus('ready', 'Capture cancelled');
+                    setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+                    return;
+                }
+                State.attachment = fallbackAttachment;
+            }
+
+            DOM.attachmentName.textContent = State.attachment.name || 'Screenshot.png';
+            DOM.attachmentsArea.style.display = 'flex';
+            setStatus('ready', 'Screenshot ready');
+            setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+        } catch (err) {
+            if (isCaptureCancelError(err)) {
+                setStatus('ready', 'Capture cancelled');
+                setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+                return;
+            }
+            console.error('Capture error', err);
+            showErrorToast('Screen capture failed: ' + (err.message || String(err)));
+            setStatus('error', 'Capture failed');
+            setTimeout(() => setStatus('ready', 'System Ready'), 2000);
+        }
+    }
+
+    function handleCaptureAction() {
+        if (State.isDesktop) {
+            triggerAttachmentInput(DOM.attachFileInput);
+            return;
+        }
+        openAttachmentPicker();
+    }
+
+    function getFileExtension(fileName) {
+        const idx = String(fileName || '').lastIndexOf('.');
+        if (idx < 0) return '';
+        return fileName.slice(idx).toLowerCase();
+    }
+
+    function classifyAttachment(file) {
+        const extension = getFileExtension(file.name);
+        const mimeType = String(file.type || '').toLowerCase();
+
+        if (TEXT_EXTENSIONS.has(extension) || mimeType.startsWith('text/') || TEXT_MIME_TYPES.has(mimeType)) {
+            return 'text';
+        }
+        if (AUDIO_EXTENSIONS.has(extension) || mimeType.startsWith('audio/')) {
+            return 'audio';
+        }
+        if (IMAGE_EXTENSIONS.has(extension) || mimeType.startsWith('image/')) {
+            return 'image';
+        }
+        return null;
+    }
+
+    function getAttachmentLimit(kind) {
+        return ATTACHMENT_LIMITS[kind] || ATTACHMENT_LIMITS.image;
+    }
+
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error || new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunk = 0x8000;
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+    }
+
+    function textToBase64Utf8(text) {
+        const bytes = new TextEncoder().encode(text);
+        return arrayBufferToBase64(bytes.buffer);
+    }
+
+    function decodeAudioToMono(audioBuffer) {
+        const channels = audioBuffer.numberOfChannels || 1;
+        if (channels <= 1) {
+            return new Float32Array(audioBuffer.getChannelData(0));
+        }
+        const mono = new Float32Array(audioBuffer.length);
+        for (let c = 0; c < channels; c++) {
+            const channelData = audioBuffer.getChannelData(c);
+            for (let i = 0; i < channelData.length; i++) {
+                mono[i] += channelData[i];
+            }
+        }
+        for (let i = 0; i < mono.length; i++) {
+            mono[i] = mono[i] / channels;
+        }
+        return mono;
+    }
+
+    function sanitizeAttachmentForPayload(attachment) {
+        if (!attachment) return null;
+        return {
+            name: attachment.name,
+            kind: attachment.kind,
+            mime_type: attachment.mime_type,
+            data: attachment.data,
+        };
+    }
+
+    function buildRequestAttachments(attachment) {
+        if (!attachment) return [];
+        if (attachment.kind !== 'audio') {
+            const basic = sanitizeAttachmentForPayload(attachment);
+            return basic ? [basic] : [];
+        }
+
+        if (AUDIO_ATTACHMENT_MODE === 'raw_audio') {
+            const rawOnly = sanitizeAttachmentForPayload(attachment);
+            return rawOnly ? [rawOnly] : [];
+        }
+
+        const transcript = String(attachment.transcript || '').trim();
+        if (!transcript) {
+            const fallbackRaw = sanitizeAttachmentForPayload(attachment);
+            return fallbackRaw ? [fallbackRaw] : [];
+        }
+
+        const transcriptText = `[Audio transcript from ${attachment.name || 'Audio'}]\n${transcript}`;
+        const transcriptAttachment = {
+            name: `${attachment.name || 'audio'}_transcript.txt`,
+            kind: 'text',
+            mime_type: 'text/plain',
+            data: textToBase64Utf8(transcriptText),
+        };
+
+        if (FORWARD_RAW_AUDIO_WITH_TRANSCRIPT) {
+            const raw = sanitizeAttachmentForPayload(attachment);
+            return raw ? [transcriptAttachment, raw] : [transcriptAttachment];
+        }
+        return [transcriptAttachment];
+    }
+
+    async function transcribeAudioAttachment(file) {
+        const asrReady = await loadMedASR();
+        if (!asrReady) {
+            throw new Error('MedASR is unavailable');
+        }
+
+        const AudioContextCls = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextCls) {
+            throw new Error('Audio decoding is not supported in this browser');
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const decodeCtx = new AudioContextCls();
+        try {
+            const decoded = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+            const mono = decodeAudioToMono(decoded);
+            const downsampled = downsample(mono, decoded.sampleRate, 16000);
+            const pcm16 = floatTo16BitPCM(downsampled);
+            const pcmB64 = arrayBufferToBase64(pcm16.buffer);
+
+            const response = await apiRequest('/transcribe/medasr', {
+                method: 'POST',
+                body: JSON.stringify({
+                    pcm16: pcmB64,
+                    sample_rate: 16000,
+                }),
+            });
+            return String(response.transcript || '').trim();
+        } finally {
+            try {
+                await decodeCtx.close();
+            } catch (e) { }
+        }
+    }
+
+    async function attachFile(file) {
+        if (!file) return;
+        if (State.isProcessing) {
+            showErrorToast('Please wait for the current request to finish before attaching a file.');
+            return;
+        }
+        const kind = classifyAttachment(file);
+        if (!kind) {
+            showErrorToast(`Unsupported file type for ${file.name}. Allowed: text, audio, image.`);
+            return;
+        }
+
+        const maxBytes = getAttachmentLimit(kind);
+        if (file.size > maxBytes) {
+            const maxMb = (maxBytes / (1024 * 1024)).toFixed(0);
+            showErrorToast(`File too large (${file.name}). Max ${maxMb} MB for ${kind}.`);
+            return;
+        }
+
+        try {
+            const mimeType = file.type || (
+                kind === 'image' ? 'image/png'
+                    : kind === 'audio' ? 'audio/wav'
+                        : 'text/plain'
+            );
+
+            if (kind === 'text') {
+                setStatus('processing', 'Reading text attachment...');
+                const rawText = await file.text();
+                const text = String(rawText || '');
+                if (!text.trim()) {
+                    throw new Error('Text file is empty');
+                }
+                State.attachment = {
+                    name: file.name || 'Attachment.txt',
+                    kind: 'text',
+                    mime_type: mimeType,
+                    data: textToBase64Utf8(text),
+                };
+            } else if (kind === 'audio') {
+                setStatus('processing', 'Reading audio attachment...');
+                const dataUrl = await readFileAsDataURL(file);
+                const parts = String(dataUrl).split(',');
+                if (parts.length < 2) {
+                    throw new Error('Malformed audio payload');
+                }
+
+                setStatus('processing', 'Transcribing audio with MedASR...');
+                const transcript = await transcribeAudioAttachment(file);
+                if (!transcript) {
+                    throw new Error('No speech detected in audio');
+                }
+                State.attachment = {
+                    name: file.name || 'Audio',
+                    kind: 'audio',
+                    mime_type: mimeType,
+                    data: parts[1],
+                    transcript,
+                };
+            } else {
+                setStatus('processing', 'Reading image attachment...');
+                const dataUrl = await readFileAsDataURL(file);
+                const parts = String(dataUrl).split(',');
+                if (parts.length < 2) {
+                    throw new Error('Malformed image payload');
+                }
+                State.attachment = {
+                    name: file.name || 'Image',
+                    kind: 'image',
+                    mime_type: mimeType,
+                    data: parts[1],
+                };
+            }
+
+            DOM.attachmentName.textContent = State.attachment.name;
+            DOM.attachmentsArea.style.display = 'flex';
+            setStatus('ready', 'Attachment ready');
+            setTimeout(() => setStatus('ready', 'System Ready'), 1200);
+        } catch (err) {
+            showErrorToast("Attachment failed: " + (err.message || String(err)));
+            setStatus('error', 'Attachment failed');
+            setTimeout(() => setStatus('ready', 'System Ready'), 2000);
+        }
+    }
+
     // --- Audio Math Helpers ---
     function floatTo16BitPCM(floatBuf) {
         const output = new Int16Array(floatBuf.length);
@@ -807,9 +1638,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadMedASR() {
+        if (State.medasr.loaded) {
+            return true;
+        }
         try {
             setStatus('processing', 'Loading MedASR backend...');
             await apiRequest('/transcribe/medasr/load', { method: 'POST' });
+            State.medasr.loaded = true;
             return true;
         } catch (e) {
             showErrorToast("Failed to load MedASR: " + e.message);
@@ -915,32 +1750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Screen Region Capture ---
-
-    async function startScreenCapture() {
-        if (State.isProcessing) return;
-
-        try {
-            setStatus('recording', 'Waiting for screen selection...');
-            const data = await apiRequest('/capture/screen', { method: 'POST' });
-
-            if (data.status === 'success' && data.attachment) {
-                State.attachment = data.attachment;
-                DOM.attachmentName.textContent = State.attachment.name;
-                DOM.attachmentsArea.style.display = 'flex';
-                setStatus('ready', 'System Ready');
-            } else {
-                setStatus('ready', 'Capture cancelled');
-                setTimeout(() => setStatus('ready', 'System Ready'), 2000);
-            }
-        } catch (err) {
-            showErrorToast("Screen capture failed: " + err.message);
-            setStatus('error', 'Capture failed');
-            setTimeout(() => setStatus('ready', 'System Ready'), 3000);
-        }
-    }
-
-
     // --- UI State Helpers ---
 
     /* cls: 'ready', 'recording', 'processing', 'error' */
@@ -954,6 +1763,9 @@ document.addEventListener('DOMContentLoaded', () => {
         State.isProcessing = isProc;
         DOM.sendBtn.disabled = isProc;
         DOM.recordBtn.disabled = isProc;
+        DOM.captureBtn.disabled = isProc;
+        if (DOM.screenshotBtn) DOM.screenshotBtn.disabled = isProc;
+        if (isProc) closeAttachmentPicker();
 
         if (isProc) {
             DOM.textInput.style.opacity = '0.7';
@@ -981,11 +1793,103 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         DOM.recordBtn.addEventListener('click', toggleRecording);
-        DOM.captureBtn.addEventListener('click', startScreenCapture);
+        DOM.captureBtn.addEventListener('click', handleCaptureAction);
+        if (DOM.screenshotBtn) {
+            DOM.screenshotBtn.addEventListener('click', startScreenCapture);
+        }
         DOM.sendBtn.addEventListener('click', submitRequest);
         DOM.refreshModelsBtn.addEventListener('click', refreshModels);
 
+        if (DOM.attachPickerModal) {
+            DOM.attachPickerModal.addEventListener('click', (e) => {
+                if (e.target === DOM.attachPickerModal) {
+                    closeAttachmentPicker();
+                }
+            });
+        }
+        if (DOM.cancelAttachPickerBtn) {
+            DOM.cancelAttachPickerBtn.addEventListener('click', closeAttachmentPicker);
+        }
+        if (DOM.pickFileBtn) {
+            DOM.pickFileBtn.addEventListener('click', () => triggerAttachmentInput(DOM.attachFileInput));
+        }
+        if (DOM.pickImageBtn) {
+            DOM.pickImageBtn.addEventListener('click', () => triggerAttachmentInput(DOM.attachImageInput));
+        }
+        if (DOM.pickCameraBtn) {
+            DOM.pickCameraBtn.addEventListener('click', () => triggerAttachmentInput(DOM.attachCameraInput));
+        }
+
+        [DOM.attachFileInput, DOM.attachImageInput, DOM.attachCameraInput].forEach((inputEl) => {
+            if (!inputEl) return;
+            inputEl.addEventListener('change', async () => {
+                const file = inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
+                if (file) {
+                    await attachFile(file);
+                }
+                inputEl.value = '';
+            });
+        });
+
+        if (State.isDesktop) {
+            window.addEventListener('dragenter', (e) => {
+                if (!hasFileDataTransfer(e)) return;
+                e.preventDefault();
+                State.dragDropDepth += 1;
+                showDragDropOverlay();
+            });
+
+            window.addEventListener('dragover', (e) => {
+                if (!hasFileDataTransfer(e)) return;
+                e.preventDefault();
+                if (e.dataTransfer) {
+                    e.dataTransfer.dropEffect = 'copy';
+                }
+                showDragDropOverlay();
+            });
+
+            window.addEventListener('dragleave', (e) => {
+                if (!hasFileDataTransfer(e)) return;
+                e.preventDefault();
+                State.dragDropDepth = Math.max(0, State.dragDropDepth - 1);
+                if (State.dragDropDepth === 0) {
+                    hideDragDropOverlay();
+                }
+            });
+
+            window.addEventListener('drop', async (e) => {
+                if (!hasFileDataTransfer(e)) return;
+                e.preventDefault();
+                resetDragDropOverlay();
+                closeAttachmentPicker();
+                const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+                if (!files.length) return;
+                if (files.length > 1) {
+                    showErrorToast('Multiple files dropped. Attaching the first file only.');
+                }
+                await attachFile(files[0]);
+            });
+
+            window.addEventListener('blur', () => {
+                resetDragDropOverlay();
+            });
+        }
+
         DOM.textInput.addEventListener('input', adjustTextareaHeight);
+        DOM.textInput.addEventListener('paste', async (e) => {
+            const clipboardFiles = extractClipboardFiles(e);
+            if (!clipboardFiles.length) {
+                return; // normal text paste path
+            }
+
+            e.preventDefault();
+            closeAttachmentPicker();
+
+            if (clipboardFiles.length > 1) {
+                showErrorToast('Multiple files pasted. Attaching the first file only.');
+            }
+            await attachFile(clipboardFiles[0]);
+        });
         DOM.textInput.addEventListener('keydown', (e) => {
             if (State.sendHotkey === 'enter') {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -1103,6 +2007,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     inputEl.value = hotkeyStr;
                     State[stateKey] = hotkeyStr;
                     try { localStorage.setItem(storageKey, hotkeyStr); } catch (err) { }
+                    if (stateKey === 'captureHotkey') applyCaptureModeUI();
                     setTimeout(() => inputEl.blur(), 100);
                 }
             });
@@ -1112,6 +2017,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     inputEl.value = 'None';
                     State[stateKey] = 'None';
                     try { localStorage.setItem(storageKey, 'None'); } catch (err) { }
+                    if (stateKey === 'captureHotkey') applyCaptureModeUI();
                 });
             }
         }
@@ -1125,10 +2031,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const pressed = formatHotkey(e);
 
-            // Screen Capture Hotkey
+            if (e.key === 'Escape' && DOM.attachPickerModal && !DOM.attachPickerModal.classList.contains('hidden')) {
+                closeAttachmentPicker();
+                return;
+            }
+
+            // Screenshot hotkey on desktop, attachment picker hotkey on mobile.
             if (pressed === State.captureHotkey && State.captureHotkey !== 'None') {
                 e.preventDefault();
-                startScreenCapture();
+                if (State.isDesktop) {
+                    startScreenCapture();
+                } else {
+                    handleCaptureAction();
+                }
                 return;
             }
 

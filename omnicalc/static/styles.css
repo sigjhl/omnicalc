@@ -621,29 +621,67 @@ textarea::placeholder {
     cursor: pointer;
 }
 
-/* Screen Capture */
-.capture-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 100;
-    cursor: crosshair;
+.attach-sheet {
+    width: min(420px, 92vw);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.capture-instruction {
-    position: absolute;
-    top: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-size: 0.9rem;
+.attach-option-btn,
+.attach-cancel-btn {
+    width: 100%;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
+    padding: 12px;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.attach-option-btn:hover,
+.attach-cancel-btn:hover {
+    background: var(--bg-panel-hover);
+}
+
+.attach-cancel-btn {
+    color: var(--text-secondary);
+}
+
+.drag-drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
+}
+
+.drag-drop-panel {
+    padding: 18px 24px;
+    border-radius: 14px;
+    border: 2px dashed var(--accent-primary);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.hidden-file-input {
+    display: none !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 @keyframes slideUp {

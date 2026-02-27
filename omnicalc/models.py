@@ -93,7 +93,7 @@ class StreamEvent(BaseModel):
 class InputAttachment(BaseModel):
     """Optional multimodal input attachment."""
 
-    kind: Literal["image", "audio"]
+    kind: Literal["image", "audio", "text"]
     data: str  # base64-encoded payload (no data URL prefix)
     mime_type: str
     name: Optional[str] = None
@@ -110,6 +110,7 @@ class OrchestratorRequest(BaseModel):
     attachments: Optional[List[InputAttachment]] = None
     allowed_calculators: Optional[List[str]] = None  # Filter to specific calculator IDs
     mcp_url: Optional[str] = None  # Dynamic MCP URL based on request host
+    api_mode: Optional[Literal["chat_completions", "responses", "chat_v1"]] = None
 
 
 class OrchestratorResponse(BaseModel):

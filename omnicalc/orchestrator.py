@@ -11,6 +11,7 @@ Simple multi-turn tool calling following the LM Studio pattern:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import uuid
@@ -70,6 +71,7 @@ class OrchestratorAgent:
         # Used to pass data from MCP endpoint to stream events
         self.last_mcp_calc_id: Optional[str] = None
         self.last_mcp_result: Optional[Any] = None
+        self.last_mcp_exec_signature: Optional[str] = None
 
     def get_or_create_session(
         self,
@@ -112,6 +114,7 @@ class OrchestratorAgent:
             self.llm.model = request.model
 
         session = self.get_or_create_session(request.session_id, request.locale)
+        api_mode = request.api_mode or "chat_completions"
 
         # Build system prompt with available calculators
         calculators = await self.tools.list_calculators()
@@ -137,10 +140,18 @@ class OrchestratorAgent:
             logger.debug(f"Agent turn {turn + 1}/{self.max_turns}")
 
             # Call LLM with tools
-            result = await self.llm.chat_completion(
-                messages=session.messages,
-                tools=TOOL_DEFINITIONS,
-            )
+            if api_mode == "responses":
+                result = await self.llm.responses_completion(
+                    messages=session.messages,
+                    tools=TOOL_DEFINITIONS,
+                )
+                if result.response_id:
+                    session.previous_response_id = result.response_id
+            else:
+                result = await self.llm.chat_completion(
+                    messages=session.messages,
+                    tools=TOOL_DEFINITIONS,
+                )
 
             # No tool calls = final response
             if not result.tool_calls:
@@ -204,6 +215,115 @@ class OrchestratorAgent:
 
     async def process_stream(self, request: OrchestratorRequest) -> AsyncGenerator[StreamEvent, None]:
         """Process user input using LM Studio's native agent loop with FastMCP via /api/v1/chat."""
+        if request.api_mode == "responses":
+            if request.model:
+                logger.info("Using model override (stream): %s", request.model)
+                self.llm.model = request.model
+
+            session = self.get_or_create_session(request.session_id, request.locale)
+
+            calculators = await self.tools.list_calculators()
+            if request.allowed_calculators:
+                calculators = [c for c in calculators if c.get("id") in request.allowed_calculators]
+            system_prompt = build_system_prompt(
+                calculators=calculators,
+                locale_description=session.locale.description,
+            )
+            if not session.messages:
+                session.messages.append(Message(role="system", content=system_prompt))
+
+            user_content = self._build_user_content(request.input, request.calculator_hint, request.attachments)
+            session.messages.append(Message(role="user", content=user_content))
+
+            saw_success = False
+            for _ in range(self.max_turns):
+                result = await self.llm.responses_completion(
+                    messages=session.messages,
+                    tools=TOOL_DEFINITIONS,
+                )
+                if result.response_id:
+                    session.previous_response_id = result.response_id
+
+                if not result.tool_calls:
+                    if result.content:
+                        session.messages.append(Message(role="assistant", content=result.content))
+                        yield StreamEvent(type=EventType.ASSISTANT_MESSAGE, data={"content": result.content})
+                    return
+
+                for tool_call in result.tool_calls:
+                    if tool_call.name == "calc_info":
+                        yield StreamEvent(
+                            type=EventType.CALCULATOR_SELECTED,
+                            data={"calc_id": tool_call.arguments.get("calc_id") or "calculator schema"},
+                        )
+                        await asyncio.sleep(0.2)
+
+                    tool_result = await self.tools.execute_tool(tool_call.name, tool_call.arguments)
+
+                    session.messages.append(
+                        Message(
+                            role="assistant",
+                            tool_calls=[{
+                                "id": tool_call.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tool_call.name,
+                                    "arguments": tool_call.raw_arguments,
+                                },
+                            }],
+                        )
+                    )
+                    session.messages.append(
+                        Message(
+                            role="tool",
+                            content=json.dumps(tool_result),
+                            tool_call_id=tool_call.id,
+                        )
+                    )
+
+                    if tool_call.name != "execute_calc":
+                        continue
+
+                    calc_id = tool_call.arguments.get("calc_id")
+                    variables = self._augment_variables_for_ui(calc_id, tool_call.arguments.get("variables", {}))
+
+                    try:
+                        exec_result = ExecuteCalcResult(**tool_result)
+                    except Exception:
+                        exec_result = None
+
+                    if exec_result and exec_result.success:
+                        yield StreamEvent(
+                            type=EventType.EXTRACTING_VARIABLES,
+                            data={
+                                "calc_id": calc_id,
+                                "variables": variables,
+                            },
+                        )
+                        await asyncio.sleep(0.2)
+                        yield StreamEvent(
+                            type=EventType.CALCULATION_COMPLETE,
+                            data={
+                                "calc_id": calc_id,
+                                "outputs": exec_result.outputs,
+                                "audit_trace": exec_result.audit_trace,
+                            },
+                        )
+                        saw_success = True
+                    else:
+                        errors = tool_result.get("errors", []) if isinstance(tool_result, dict) else []
+                        if isinstance(errors, str):
+                            errors = [errors]
+                        if not isinstance(errors, list):
+                            errors = [str(errors)]
+                        if not errors:
+                            errors = ["Calculation failed"]
+                        yield StreamEvent(type=EventType.VALIDATION_ERROR, data={"errors": errors})
+
+            if not saw_success:
+                yield StreamEvent(type=EventType.ERROR, data={"error": "Maximum conversation turns reached"})
+            return
+
         if request.model:
             logger.info("Using model override (stream): %s", request.model)
             self.llm.model = request.model
@@ -212,6 +332,7 @@ class OrchestratorAgent:
         # Clear them at the start of each stream to prevent stale result leakage.
         self.last_mcp_calc_id = None
         self.last_mcp_result = None
+        self.last_mcp_exec_signature = None
 
         session = self.get_or_create_session(request.session_id, request.locale)
 
@@ -403,10 +524,20 @@ class OrchestratorAgent:
 
     @staticmethod
     def _attachment_to_content(attachment: InputAttachment) -> Optional[Dict[str, Any]]:
-        mime_type = attachment.mime_type or "image/jpeg"
-        data_url = f"data:{mime_type};base64,{attachment.data}"
         if attachment.kind == "image":
+            mime_type = attachment.mime_type or "image/jpeg"
+            data_url = f"data:{mime_type};base64,{attachment.data}"
             return {"type": "image", "data_url": data_url}
+        if attachment.kind == "text":
+            try:
+                decoded = base64.b64decode(attachment.data).decode("utf-8", errors="replace").strip()
+            except Exception:
+                return None
+            if not decoded:
+                return None
+            if attachment.name:
+                decoded = f"[Attachment: {attachment.name}]\n{decoded}"
+            return {"type": "text", "content": decoded}
         return None
 
     def _build_user_content(
@@ -422,15 +553,30 @@ class OrchestratorAgent:
         if not attachments:
             return text
 
-        parts: List[Dict[str, Any]] = []
-        if text:
-            parts.append({"type": "text", "content": text})
+        text_segments: List[str] = [text] if text else []
+        media_parts: List[Dict[str, Any]] = []
 
         for attachment in attachments:
             part = self._attachment_to_content(attachment)
             if part:
-                parts.append(part)
+                if part.get("type") == "text":
+                    content = part.get("content")
+                    if content:
+                        text_segments.append(str(content))
+                else:
+                    media_parts.append(part)
 
+        merged_text = "\n\n".join(segment for segment in text_segments if segment).strip()
+        if not media_parts:
+            return merged_text
+
+        parts: List[Dict[str, Any]] = []
+        if merged_text:
+            parts.append({"type": "text", "content": merged_text})
+        parts.extend(media_parts)
+
+        if not parts:
+            return text
         return parts
 
 

@@ -69,6 +69,7 @@ class CompletionResult:
     tool_calls: List[ToolCall] = field(default_factory=list)
     finish_reason: str = "stop"
     usage: Optional[Dict[str, int]] = None
+    response_id: Optional[str] = None
 
 
 class LMStudioClient:
@@ -175,96 +176,164 @@ class LMStudioClient:
 
         result = self._parse_response_payload(data)
 
-        # Fallback: try to parse tool calls from content if tool_calls is empty
-        # Some models embed tool calls in thinking tokens or malformed blocks
-        if not result.tool_calls and result.content:
-            parsed = self._parse_tool_calls_from_content(result.content)
-            if parsed:
-                result.tool_calls = parsed
-                logger.info(f"Parsed {len(parsed)} tool call(s) from content")
+        return result
+
+    async def responses_completion(
+        self,
+        messages: List[Message],
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ) -> CompletionResult:
+        """Call /responses using chat-style history mapped to responses input items."""
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "input": self._to_responses_input(messages),
+        }
+
+        instructions = self._extract_system_prompt(messages)
+        if instructions:
+            payload["instructions"] = instructions
+        if tools:
+            payload["tools"] = self._to_responses_tools(tools)
+            payload["parallel_tool_calls"] = False
+
+        logger.debug("Responses request: %s", json.dumps(payload, indent=2))
+
+        attempts: List[Dict[str, Any]] = [dict(payload)]
+        if "parallel_tool_calls" in payload:
+            p = dict(payload)
+            p.pop("parallel_tool_calls", None)
+            attempts.append(p)
+
+        unique_attempts: List[Dict[str, Any]] = []
+        seen_payloads: set[str] = set()
+        for attempt in attempts:
+            key = json.dumps(attempt, sort_keys=True, default=str)
+            if key in seen_payloads:
+                continue
+            seen_payloads.add(key)
+            unique_attempts.append(attempt)
+
+        response = None
+        last_error: Optional[httpx.HTTPStatusError] = None
+        for index, attempt_payload in enumerate(unique_attempts):
+            response = await self._client.post(
+                f"{self.base_url}/responses",
+                json=attempt_payload,
+            )
+            try:
+                response.raise_for_status()
+                break
+            except httpx.HTTPStatusError as exc:
+                last_error = exc
+                is_last = index == len(unique_attempts) - 1
+                if response.status_code in (400, 404, 422) and not is_last:
+                    snippet = (response.text or "").strip().replace("\n", " ")
+                    if len(snippet) > 240:
+                        snippet = snippet[:240] + "..."
+                    logger.warning("Responses payload rejected (%s); retrying simpler payload", snippet or response.status_code)
+                    continue
+                raise
+
+        if response is None:
+            if last_error:
+                raise last_error
+            raise RuntimeError("No /responses response received")
+
+        data = response.json()
+        logger.debug("Responses response: %s", json.dumps(data, indent=2))
+        result = self._parse_response_payload(data)
 
         return result
 
-    def _parse_tool_calls_from_content(self, content: str) -> List[ToolCall]:
-        """
-        Fallback parser for tool calls embedded in content.
+    def _extract_system_prompt(self, messages: List[Message]) -> Optional[str]:
+        for message in messages:
+            if message.role == "system" and isinstance(message.content, str):
+                return message.content
+        return None
 
-        Handles cases where model generates tool calls inside thinking tokens
-        or with malformed markers. Looks for JSON objects with "name" and
-        "arguments" fields.
-        """
-        import re
+    def _to_responses_tools(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        mapped: List[Dict[str, Any]] = []
+        for tool in tools:
+            if tool.get("type") != "function":
+                continue
+            fn = tool.get("function", {})
+            mapped.append({
+                "type": "function",
+                "name": fn.get("name"),
+                "description": fn.get("description", ""),
+                "parameters": fn.get("parameters", {"type": "object", "properties": {}}),
+            })
+        return mapped
 
-        tool_calls = []
-
-        # Pattern 1: Standard [TOOL_REQUEST]...[END_TOOL_REQUEST] (may be inside thinking tokens)
-        tool_request_pattern = r'\[TOOL_REQUEST\]\s*(\{.*?\})\s*\[END_TOOL_REQUEST\]'
-        matches = re.findall(tool_request_pattern, content, re.DOTALL)
-
-        for match in matches:
-            try:
-                data = json.loads(match)
-                if "name" in data:
-                    tool_calls.append(ToolCall(
-                        id=f"parsed_{len(tool_calls)}",
-                        name=data["name"],
-                        arguments=data.get("arguments", {}),
-                        raw_arguments=json.dumps(data.get("arguments", {})),
-                    ))
-            except json.JSONDecodeError:
+    def _to_responses_input(self, messages: List[Message]) -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+        for message in messages:
+            if message.role == "system":
                 continue
 
-        if tool_calls:
-            return tool_calls
+            if message.role in ("user", "assistant"):
+                content = self._to_responses_content(message.content)
+                if content:
+                    items.append({
+                        "role": message.role,
+                        "content": content,
+                    })
 
-        # Pattern 2: Look for JSON with "calc_id" and tool-like structure (execute_calc)
-        # This handles malformed output where model skips the markers
-        calc_pattern = r'\{\s*"calc_id"\s*:\s*"([^"]+)"\s*,\s*"variables"\s*:\s*(\{[^}]*\})'
-        calc_matches = re.findall(calc_pattern, content, re.DOTALL)
-
-        for calc_id, variables_str in calc_matches:
-            try:
-                # Try to find the full variables object
-                # Find from "variables": to the matching closing brace
-                var_start = content.find(f'"calc_id": "{calc_id}"')
-                if var_start == -1:
-                    var_start = content.find(f'"calc_id":"{calc_id}"')
-                if var_start != -1:
-                    # Find the enclosing JSON object
-                    brace_count = 0
-                    start_idx = None
-                    for i in range(var_start, -1, -1):
-                        if content[i] == '{':
-                            if start_idx is None:
-                                start_idx = i
-                            brace_count += 1
-                            break
-
-                    if start_idx is not None:
-                        # Find matching close brace
-                        brace_count = 0
-                        for i in range(start_idx, len(content)):
-                            if content[i] == '{':
-                                brace_count += 1
-                            elif content[i] == '}':
-                                brace_count -= 1
-                                if brace_count == 0:
-                                    json_str = content[start_idx:i+1]
-                                    try:
-                                        data = json.loads(json_str)
-                                        tool_calls.append(ToolCall(
-                                            id=f"parsed_exec_{len(tool_calls)}",
-                                            name="execute_calc",
-                                            arguments=data,
-                                            raw_arguments=json_str,
-                                        ))
-                                    except json.JSONDecodeError:
-                                        pass
-                                    break
-            except Exception:
+                for tool_call in message.tool_calls or []:
+                    fn = tool_call.get("function", {})
+                    call_id = tool_call.get("id")
+                    if not call_id:
+                        continue
+                    raw_args = fn.get("arguments")
+                    if isinstance(raw_args, dict):
+                        raw_args = json.dumps(raw_args)
+                    items.append({
+                        "type": "function_call",
+                        "call_id": call_id,
+                        "name": fn.get("name"),
+                        "arguments": raw_args or "{}",
+                    })
                 continue
 
-        return tool_calls
+            if message.role == "tool" and message.tool_call_id:
+                output = message.content
+                if isinstance(output, (dict, list)):
+                    output = json.dumps(output)
+                elif output is None:
+                    output = ""
+                items.append({
+                    "type": "function_call_output",
+                    "call_id": message.tool_call_id,
+                    "output": str(output),
+                })
+
+        return items
+
+    def _to_responses_content(self, content: Any) -> List[Dict[str, Any]]:
+        if content is None:
+            return []
+        if isinstance(content, str):
+            return [{"type": "input_text", "text": content}]
+        if isinstance(content, list):
+            parts: List[Dict[str, Any]] = []
+            for part in content:
+                if isinstance(part, str):
+                    parts.append({"type": "input_text", "text": part})
+                    continue
+                if not isinstance(part, dict):
+                    continue
+                part_type = part.get("type")
+                if part_type == "text":
+                    text = part.get("content")
+                    if text:
+                        parts.append({"type": "input_text", "text": str(text)})
+                elif part_type == "image":
+                    data_url = part.get("data_url")
+                    if data_url:
+                        parts.append({"type": "input_image", "image_url": str(data_url)})
+            return parts
+
+        return [{"type": "input_text", "text": json.dumps(content, default=str)}]
 
     def _parse_response_payload(self, data: Dict[str, Any]) -> CompletionResult:
         if "choices" in data:
@@ -278,6 +347,7 @@ class LMStudioClient:
             content=content,
             finish_reason=data.get("finish_reason", "stop"),
             usage=data.get("usage"),
+            response_id=data.get("id"),
         )
 
     def _parse_chat_completions_payload(self, data: Dict[str, Any]) -> CompletionResult:
@@ -288,6 +358,7 @@ class LMStudioClient:
             content=message.get("content"),
             finish_reason=finish_reason,
             usage=data.get("usage"),
+            response_id=data.get("id"),
         )
         parsed_calls = self._parse_tool_calls_from_message(message)
         result.tool_calls = self._normalize_tool_calls(parsed_calls)
@@ -322,6 +393,7 @@ class LMStudioClient:
             tool_calls=self._normalize_tool_calls(tool_calls),
             finish_reason=data.get("status", "stop"),
             usage=data.get("usage"),
+            response_id=data.get("id"),
         )
 
     def _normalize_tool_calls(self, tool_calls: List[ToolCall]) -> List[ToolCall]:

@@ -24,8 +24,30 @@ Open `http://localhost:8002`.
 
 - `LM_STUDIO_URL` (default: `http://localhost:1234/v1`)
 - `MODEL_NAME` (default: `sigjhl/medgemma-1.5-4b-it-MedCalcCaller`)
+- `OMNICALC_ORCHESTRATE_API_MODE` (`chat_completions` or `responses`, default: `responses`)
+- `OMNICALC_STREAM_API_MODE` (`chat_v1` or `responses`, default: `responses`)
 - `MEDASR_BACKEND` (default: `mlx`)
 - `MEDASR_MODEL_PATH` (default: `google/medasr`)
+
+## Engine Compatibility
+
+OmniCalc is now **`/v1/responses`-first** by default.
+
+You can generally use any engine/provider if it is OpenAI-compatible and supports:
+- `GET /v1/models`
+- `POST /v1/responses` with function tools (`type: "function"`)
+- function call outputs mapped back into conversation state (equivalent of `function_call_output`)
+
+If your engine does not support `/v1/responses`, you can still use:
+- `OMNICALC_ORCHESTRATE_API_MODE=chat_completions`
+
+Streaming remains:
+- `OMNICALC_STREAM_API_MODE=responses` for portable OpenAI-compatible engines, or
+- `OMNICALC_STREAM_API_MODE=chat_v1` for LM Studio-only mode.
+
+Notes:
+- `chat_v1` is LM Studio-specific (`/api/v1/chat`) and not expected on other providers.
+- Tool calls must be valid structured function calls. We do **not** rely on malformed marker recovery.
 
 ## Smoke Test (Optional)
 
