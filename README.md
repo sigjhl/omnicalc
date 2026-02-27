@@ -49,16 +49,6 @@ Notes:
 - `chat_v1` is LM Studio-specific (`/api/v1/chat`) and not expected on other providers.
 - Tool calls must be valid structured function calls. We do **not** rely on malformed marker recovery.
 
-## Smoke Test (Optional)
-
-Requires LM Studio + model loaded.
-
-```bash
-uv run python scripts/eval_medcalc_bench.py \
-  --dataset scripts/sample_cases_meld_na.jsonl \
-  --out /tmp/omnicalc_eval.json
-```
-
 ## Notes
 
 - `NOTICE.txt` contains additional HAI-DEF terms notice.
