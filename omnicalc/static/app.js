@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat state tracking to append chunks to the same bubble
         currentAssistantBubble: null,
         typingIndicator: null,
+        generatingStatusMsg: null,
         pendingExecutionCardMsg: null,
         pendingExecutionKey: null,
         lastCompletedExecutionKey: null,
@@ -223,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setProcessingState(true);
         setStatus('processing', 'Processing...');
+        clearGeneratingStatusCard();
         State.pendingExecutionKey = null;
         State.lastCompletedExecutionKey = null;
         State.lastResultKey = null;
@@ -282,13 +284,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Cleanup typing indicator if it's still there
             removeTypingIndicator();
+            clearGeneratingStatusCard();
             setStatus('ready', 'System Ready');
         } catch (err) {
             removeTypingIndicator();
+            clearGeneratingStatusCard();
             appendErrorMessage(err.message);
             setStatus('error', 'Error');
         } finally {
             setProcessingState(false);
+            clearGeneratingStatusCard();
             State.currentAssistantBubble = null;
         }
     }
@@ -457,11 +462,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removePendingExecutionCard() {
-        if (State.pendingExecutionCardMsg && State.pendingExecutionCardMsg.parentNode) {
-            State.pendingExecutionCardMsg.parentNode.removeChild(State.pendingExecutionCardMsg);
-        }
+        clearGeneratingStatusCard();
         State.pendingExecutionCardMsg = null;
         State.pendingExecutionKey = null;
+    }
+
+    function setGeneratingStatusCard(cardHtml) {
+        if (State.generatingStatusMsg && State.generatingStatusMsg.parentNode) {
+            State.generatingStatusMsg.innerHTML = cardHtml;
+            scrollToBottom();
+            return State.generatingStatusMsg;
+        }
+        State.generatingStatusMsg = appendSystemCard(cardHtml);
+        return State.generatingStatusMsg;
+    }
+
+    function clearGeneratingStatusCard() {
+        if (State.generatingStatusMsg && State.generatingStatusMsg.parentNode) {
+            State.generatingStatusMsg.parentNode.removeChild(State.generatingStatusMsg);
+        }
+        State.generatingStatusMsg = null;
     }
 
     function stableSerialize(value) {
@@ -585,28 +605,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = event.data;
         console.log("STREAM EVENT:", type, data);
 
-        if (['extracting_variables', 'calculation_complete', 'validation_error', 'error'].includes(type)) {
-            const loader = document.getElementById('loading-indicator');
-            if (loader) {
-                const msg = loader.closest('.message.system');
-                if (msg && msg.parentNode) msg.parentNode.removeChild(msg);
-            }
-        }
-
         if (type === 'calculator_selected') {
             const calcId = data.calc_id || 'calculator';
             const card = buildLoadingCard(calcId);
-            appendSystemCard(card);
+            setGeneratingStatusCard(card);
         } else if (type === 'extracting_variables') {
             const execKey = makeExecKey(data.calc_id, data.variables || {});
             if (execKey === State.pendingExecutionKey || execKey === State.lastCompletedExecutionKey) {
                 return;
             }
-            // If another execution card is still pending, drop it to avoid stale duplicates.
-            removePendingExecutionCard();
             const varsArr = dictToArr(data.variables || {});
             const card = buildVariablesCard(data.calc_id, varsArr);
-            State.pendingExecutionCardMsg = appendSystemCard(card);
+            State.pendingExecutionCardMsg = setGeneratingStatusCard(card);
             State.pendingExecutionKey = execKey;
         } else if (type === 'calculation_complete') {
             const resultKey = makeResultKey(data.calc_id, data.outputs || {});
@@ -619,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 State.lastCompletedExecutionKey = State.pendingExecutionKey;
             }
             State.lastResultKey = resultKey;
+            clearGeneratingStatusCard();
             State.pendingExecutionCardMsg = null;
             State.pendingExecutionKey = null;
             const card = buildResultCard(data.calc_id, data.outputs, data.audit_trace);
@@ -997,6 +1008,11 @@ document.addEventListener('DOMContentLoaded', () => {
         DOM.newSessionBtn.addEventListener('click', () => {
             State.sessionId = crypto.randomUUID();
             DOM.chatContainer.innerHTML = '';
+            clearGeneratingStatusCard();
+            State.pendingExecutionCardMsg = null;
+            State.pendingExecutionKey = null;
+            State.lastCompletedExecutionKey = null;
+            State.lastResultKey = null;
             // Re-inject welcome message
             if (DOM.welcomeMessage) {
                 DOM.welcomeMessage.style.display = 'flex';
